@@ -13,6 +13,12 @@ import dynamic from "next/dynamic";
 import { Button } from "../ui/button";
 import "react-quill-new/dist/quill.snow.css";
 import { createPost } from "@/actions/create-post";
+import hljs from "highlight.js"
+import "highlight.js/styles/github.css" // or any theme
+
+if (typeof window !== "undefined") {
+  (window as any).hljs = hljs;
+}
 
 const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,

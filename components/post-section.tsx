@@ -43,24 +43,24 @@ export function PostSection({ title, posts }: PostSectionProps) {
 
       {/* Glass background */}
       <div className="absolute inset-[1px] rounded-[calc(2rem-1px)] 
-    bg-zinc-950/20 backdrop-blur-3xl -z-10 
-    border border-white/30 
+    bg-background/50 backdrop-blur-m -z-10 
+    border border-chart-1/40 border-1
     transition-all duration-300
     group-hover:border-blue-500
     group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]
   "/>
 
-      <div className="relative z-10 px-6 py-8 md:px-10 space-y-8">
+      <div className="relative z-10 px-6 py-8 md:px-10 space-y-8 ">
 
         {/* HEADER */}
         <div className="flex items-center justify-between">
-          <h2 className="text-3xl font-bold tracking-tighter text-zinc-100">
+          <h2 className="text-3xl font-semibold tracking-tighter text-chart-2/90">
             {title}
           </h2>
 
           <Link
             href={`/${title.toLowerCase()}`}
-            className="text-sm font-medium text-zinc-500 hover:text-white flex items-center gap-1 transition-colors group/link"
+            className="text-sm font-medium text-chart-1 hover:text-chart-2 flex items-center gap-1 transition-colors group/link"
           >
             Explore all
             <ArrowRight className="w-4 h-4 transition-transform group-hover/link:translate-x-1" />
@@ -85,11 +85,12 @@ export function PostSection({ title, posts }: PostSectionProps) {
                   key={post.id}
                   className="group/card"
                 >
-                  <Card className="h-full bg-zinc-950/50 border-zinc-800/50 backdrop-blur-md transition-all duration-300 group-hover/card:border-zinc-700 group-hover/card:-translate-y-1 overflow-hidden border rounded-xl">
 
-                    {/* IMAGE */}
+                  <Card className="h-full bg-zinc-950/50 border-chart-2/50 !rounded-[24px] border-3 backdrop-blur-md transition-all duration-300 group-hover/card:border-zinc-700 group-hover/card:-translate-y-1 overflow-hidden border">
+
                     {post.featuredImage && (
-                      <div className="overflow-hidden h-40">
+
+                      <div className="overflow-hidden h-40 !rounded-t-[24px]">
                         <Image
                           src={post.featuredImage}
                           alt={post.title}
