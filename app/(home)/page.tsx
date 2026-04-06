@@ -40,7 +40,7 @@ export default async function Home() {
 
         <PostSection title="Tech" posts={formatPosts(techPosts)} />
         <PostSection title="DSA" posts={formatPosts(dsaPosts)} />
-        <PostSection title="Thoughts" posts={formatPosts(thoughtsPosts)} />
+        <PostSection title="Blank_canvas" posts={formatPosts(thoughtsPosts)} />
       </main>
     </div>
 

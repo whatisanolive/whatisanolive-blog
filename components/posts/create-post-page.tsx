@@ -18,6 +18,28 @@ const ReactQuill = dynamic(() => import("react-quill-new"), {
   ssr: false,
 });
 
+
+const modules = {
+  toolbar: [
+    [{ header: [1, 2, 3, false] }],
+
+    ['bold', 'italic', 'underline', 'strike'],
+
+    [{ list: 'ordered' }, { list: 'bullet' }],
+
+    ['blockquote', 'code-block'],
+
+    ['link', 'image'],
+
+    ['clean'] 
+  ],
+  // imageResize: {
+  //     parchment: Quill.import('parchment'),
+  //     modules: ['Resize', 'DisplaySize', 'Toolbar'] // Enable handles, size display, and alignment
+  //   },
+  syntax: true,
+}
+
 export default function CreatePostPage() {
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -132,7 +154,7 @@ export default function CreatePostPage() {
             <div className="space-y-2">
               <Label>Content</Label>
 
-              <ReactQuill value={content} onChange={setContent} />
+              <ReactQuill value={content} onChange={setContent} modules={modules}/>
 
               <input
                 type="hidden"

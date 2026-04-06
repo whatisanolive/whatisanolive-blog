@@ -5,6 +5,8 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
 import { ClerkProvider } from "@clerk/nextjs";
+import Footer from "@/components/Footer";
+
 
 const ibmPlexSansHeading = IBM_Plex_Sans({subsets:['latin'],variable:'--font-heading'});
 
@@ -35,12 +37,15 @@ export default function RootLayout({
     lang="en"
     className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", raleway.variable, ibmPlexSansHeading.variable)}
     >
-      {/* <body className="min-h-full flex flex-col bg-background text-foreground "> */}
-      <body  className="grid-bg min-h-screen">
+      <body  className="grid-bg min-h-screen flex flex-col">
       <ClerkProvider>
+
         <Navbar />
+        <main className="flex-1">
 
         {children}
+        </main>
+        <Footer/>
     </ClerkProvider>
         </body>
     </html>
