@@ -1,0 +1,121 @@
+generator client { 
+  provider = "prisma-client-js" 
+  }
+ datasource db { 
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+
+  }
+///////////////////////
+// ENUMS
+///////////////////////
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum Category {
+  TECH
+  DSA
+  BLANK_CANVAS
+}
+
+enum PostStatus {
+  DRAFT
+  PUBLISHED
+}
+
+///////////////////////
+// MODELS
+///////////////////////
+
+model User {
+  id            String   @id @default(cuid())
+  clerkUserId   String   @unique
+  email         String   @unique
+  name          String
+  imageUrl      String?
+  role          Role     @default(USER)
+
+  posts         Post[]
+  comments      Comment[]
+  likes         Like[]
+
+  createdAt     DateTime @default(now())
+}
+
+model Post {
+  id            String     @id @default(cuid())
+  title         String
+  slug          String     @unique
+  content       String
+
+  status        PostStatus @default(DRAFT)
+  publishedAt   DateTime?
+
+  author        User       @relation(fields: [authorId], references: [id])
+  authorId      String
+
+  category      Category
+
+  featuredImage String?
+  views         Int        @default(0)
+
+  tags          PostTag[]
+  comments      Comment[]
+  likes         Like[]
+
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([authorId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model Tag {
+  id    String  @id @default(cuid())
+  name  String  @unique
+  slug  String  @unique
+
+  posts PostTag[]
+}
+
+model PostTag {
+  post   Post @relation(fields: [postId], references: [id])
+  postId String
+
+  tag    Tag  @relation(fields: [tagId], references: [id])
+  tagId  String
+
+  @@id([postId, tagId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  String
+
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    String
+
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+}
+
+model Like {
+  user   User @relation(fields: [userId], references: [id])
+  userId String
+
+  post   Post @relation(fields: [postId], references: [id])
+  postId String
+
+  createdAt DateTime @default(now())
+
+  @@id([userId, postId])
+  @@index([postId])
+}
