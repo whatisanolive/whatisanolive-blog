@@ -8,7 +8,7 @@ import {
 } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useState, useActionState } from "react";
+import { useState, useActionState, useRef, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "../ui/button";
 import "react-quill-new/dist/quill.snow.css";
@@ -23,26 +23,16 @@ if (typeof window !== "undefined") {
   (window as any).hljs = hljs;
 }
 
-const ReactQuill = dynamic(() => import("react-quill-new"), {
-  ssr: false,
-});
-
-const modules = {
-  toolbar: [
-    [{ header: [1, 2, 3, false] }],
-
-    ['bold', 'italic', 'underline', 'strike'],
-
-    [{ list: 'ordered' }, { list: 'bullet' }],
-
-    ['blockquote', 'code-block'],
-
-    ['link', 'image'],
-
-    ['clean'] 
-  ],
-  syntax: true,
-}
+const ReactQuill = dynamic(
+  async () => {
+    const { default: RQ } = await import("react-quill-new");
+    // eslint-disable-next-line react/display-name
+    return ({ forwardedRef, ...props }: any) => <RQ ref={forwardedRef} {...props} />;
+  },
+  {
+    ssr: false,
+  }
+);
 
 
 type PostWithTags = Prisma.PostGetPayload<{
@@ -56,6 +46,8 @@ type PostWithTags = Prisma.PostGetPayload<{
 }>;
 
 const EditPostPage = ({ post }: { post: PostWithTags }) => {
+  const quillRef = useRef<any>(null);
+
   const [content, setContent] = useState(post.content || "");
   const [imageUrl, setImageUrl] = useState(post.featuredImage || "");
   const [uploading, setUploading] = useState(false);
@@ -86,6 +78,53 @@ const EditPostPage = ({ post }: { post: PostWithTags }) => {
     const data = await res.json();
     return data.secure_url;
   };
+
+  const imageHandler = useCallback(() => {
+    const input = document.createElement("input");
+    input.setAttribute("type", "file");
+    input.setAttribute("accept", "image/*");
+    input.click();
+
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (file) {
+        setUploading(true);
+        try {
+          const url = await uploadImage(file);
+          const quill = quillRef.current?.getEditor();
+          if (quill) {
+            const range = quill.getSelection(true) || { index: content.length };
+            quill.insertEmbed(range.index, "image", url);
+            quill.setSelection(range.index + 1);
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setUploading(false);
+        }
+      }
+    };
+  }, [content]);
+
+  const modules = useMemo(
+    () => ({
+      toolbar: {
+        container: [
+          [{ header: [1, 2, 3, false] }],
+          ["bold", "italic", "underline", "strike"],
+          [{ list: "ordered" }, { list: "bullet" }],
+          ["blockquote", "code-block"],
+          ["link", "image"],
+          ["clean"],
+        ],
+        handlers: {
+          image: imageHandler,
+        },
+      },
+      syntax: true,
+    }),
+    [imageHandler]
+  );
 
   // 🔥 File handler
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,7 +217,7 @@ const EditPostPage = ({ post }: { post: PostWithTags }) => {
             <div className="space-y-2">
               <Label>Content</Label>
 
-              <ReactQuill value={content} onChange={setContent} modules={modules} />
+              <ReactQuill forwardedRef={quillRef} value={content} onChange={setContent} modules={modules} />
 
               <input
                 type="hidden"
