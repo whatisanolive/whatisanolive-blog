@@ -4,32 +4,44 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import type { Prisma } from "@prisma/client";
 
-export default async function DSAPage({ searchParams }: { searchParams: Promise<{ tag?: string }> }) {
-  const resolvedParams = await searchParams;
-  const activeTag = resolvedParams.tag;
+export default async function DSAPage({
+  searchParams,
+}: {
+  searchParams: { tag?: string };
+}) {
+  const activeTag = searchParams?.tag;
 
-  // 1. Fetch available tags for DSA category
+  // 🔥 1. Get available tags
   const availableTags = await prisma.tag.findMany({
     where: {
       posts: {
         some: {
-          post: { category: "DSA", status: "PUBLISHED" },
+          post: {
+            category: "DSA",
+            status: "PUBLISHED",
+          },
         },
       },
     },
   });
 
-  // 2. Build properly typed where clause
+  // 🔥 2. Build filter
   const whereClause: Prisma.PostWhereInput = {
     category: "DSA",
     status: "PUBLISHED",
   };
 
   if (activeTag) {
-    whereClause.tags = { some: { tag: { name: activeTag } } };
+    whereClause.tags = {
+      some: {
+        tag: {
+          name: activeTag,
+        },
+      },
+    };
   }
 
-  // 3. Fetch posts, filtered if a tag is selected
+  // 🔥 3. Fetch posts WITH tags
   const posts = await prisma.post.findMany({
     where: whereClause,
     orderBy: { createdAt: "desc" },
@@ -42,27 +54,45 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
     },
   });
 
+  // 🔥 4. Safe formatting (prevents build crashes)
   const formattedPosts = posts.map((post) => ({
     ...post,
-    createdAt: post.createdAt.toISOString(),
+    createdAt: post.createdAt?.toISOString?.() ?? new Date().toISOString(),
+    content: post.content || "",
+    tags: post.tags || [],
   }));
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-8">
-      {/* FILTER HEADER */}
+
+      {/* 🔥 FILTER BAR */}
       {availableTags.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 mb-8 bg-zinc-950/50 p-4 rounded-2xl border border-zinc-800/50 backdrop-blur-sm">
-          <span className="text-zinc-400 text-sm font-medium mr-2">Filter by Tag:</span>
-          
+          <span className="text-zinc-400 text-sm font-medium mr-2">
+            Filter by Tag:
+          </span>
+
+          {/* ALL */}
           <Link href="/dsa">
-            <Badge className={`px-3 py-1 cursor-pointer transition-colors ${!activeTag ? 'bg-chart-1 text-zinc-950 hover:bg-chart-1/90' : 'bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800'}`}>
+            <Badge
+              className={`px-3 py-1 cursor-pointer transition-all duration-200 ${!activeTag
+                  ? "bg-chart-1 text-zinc-950 shadow"
+                  : "bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                }`}
+            >
               All
             </Badge>
           </Link>
 
+          {/* TAGS */}
           {availableTags.map((tag) => (
             <Link key={tag.id} href={`/dsa?tag=${tag.name}`}>
-              <Badge className={`px-3 py-1 cursor-pointer transition-colors ${activeTag === tag.name ? 'bg-chart-1 text-zinc-950 hover:bg-chart-1/90' : 'bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800'}`}>
+              <Badge
+                className={`px-3 py-1 cursor-pointer transition-all duration-200 ${activeTag === tag.name
+                    ? "bg-chart-1 text-zinc-950 shadow"
+                    : "bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                  }`}
+              >
                 {tag.name}
               </Badge>
             </Link>
@@ -70,7 +100,12 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
         </div>
       )}
 
-      <PostSection title="DSA" posts={formattedPosts} hideExploreLink={true} />
+      {/* 🔥 POSTS */}
+      <PostSection
+        title="DSA"
+        posts={formattedPosts}
+        hideExploreLink={true}
+      />
     </main>
   );
 }
