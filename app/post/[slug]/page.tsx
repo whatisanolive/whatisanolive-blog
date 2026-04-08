@@ -10,6 +10,13 @@ export default async function PostPage({ params }: any) {
 
   const post = await prisma.post.findUnique({
     where: { slug: resolvedParams.slug },
+    include: {
+      tags: {
+        include: {
+          tag: true,
+        },
+      },
+    },
   });
 
   if (!post) return (
@@ -57,9 +64,16 @@ export default async function PostPage({ params }: any) {
 
         {/* HERO HEADER */}
         <header className="space-y-8 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <Badge className="bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/50 px-4 py-1.5 uppercase tracking-widest text-xs backdrop-blur-md">
-            {post.category}
-          </Badge>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Badge className="bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/50 px-4 py-1.5 uppercase tracking-widest text-xs backdrop-blur-md">
+              {post.category}
+            </Badge>
+            {post.tags?.map((t) => (
+              <Badge key={t.tag.id} className="bg-chart-1/20 text-chart-1 hover:bg-chart-1/30 border border-chart-1/30 px-3 py-1.5 uppercase tracking-widest text-[10px] backdrop-blur-md">
+                {t.tag.name}
+              </Badge>
+            ))}
+          </div>
 
           <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tighter text-white leading-[1.1] mx-auto max-w-3xl">
             {post.title}
