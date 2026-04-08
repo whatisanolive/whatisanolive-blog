@@ -23,7 +23,7 @@ export default async function Home() {
 
   //
 
-  const formatPosts = (posts: any[]) =>
+  const formatPosts = <T extends { createdAt: Date }>(posts: T[]) =>
     posts.map((post) => ({
       ...post,
       createdAt: post.createdAt.toISOString(),

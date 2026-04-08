@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import RenderContent from '@/components/RenderContent';
 
-export default async function PostPage({ params }: any) {
+export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
 
   const post = await prisma.post.findUnique({

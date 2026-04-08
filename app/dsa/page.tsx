@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { PostSection } from "@/components/post-section";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import type { Prisma } from "@prisma/client";
 
 export default async function DSAPage({ searchParams }: { searchParams: Promise<{ tag?: string }> }) {
   const resolvedParams = await searchParams;
@@ -18,13 +19,19 @@ export default async function DSAPage({ searchParams }: { searchParams: Promise<
     },
   });
 
-  // 2. Fetch posts, filtered if a tag is selected
+  // 2. Build properly typed where clause
+  const whereClause: Prisma.PostWhereInput = {
+    category: "DSA",
+    status: "PUBLISHED",
+  };
+
+  if (activeTag) {
+    whereClause.tags = { some: { tag: { name: activeTag } } };
+  }
+
+  // 3. Fetch posts, filtered if a tag is selected
   const posts = await prisma.post.findMany({
-    where: {
-      category: "DSA",
-      status: "PUBLISHED",
-      ...(activeTag ? { tags: { some: { tag: { name: activeTag } } } } : {}),
-    },
+    where: whereClause,
     orderBy: { createdAt: "desc" },
     include: {
       tags: {
