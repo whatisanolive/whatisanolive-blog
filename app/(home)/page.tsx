@@ -1,11 +1,10 @@
 import { prisma } from "@/lib/prisma"
 import { PostSection } from "@/components/post-section"
-import { Prisma } from "@prisma/client"
 
 export default async function Home() {
 
   const baseQuery = {
-    orderBy: { createdAt: "desc" },
+    orderBy: { createdAt: "desc" as const },
     take: 3,
     include: {
       tags: {
@@ -14,7 +13,7 @@ export default async function Home() {
         },
       },
     },
-  } satisfies Prisma.PostFindManyArgs
+  }
 
   const [techPosts, dsaPosts, thoughtsPosts] = await Promise.all([
     prisma.post.findMany({ ...baseQuery, where: { category: "TECH", status: "PUBLISHED" } }),
