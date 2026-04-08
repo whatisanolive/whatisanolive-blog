@@ -15,7 +15,7 @@ export default async function TechPage() {
 
   return (
     <main className="max-w-6xl mx-auto p-6">
-      <PostSection title="Tech" posts={formattedPosts} />
+      <PostSection title="Tech" posts={formattedPosts} hideExploreLink />
     </main>
   );
 }

@@ -13,7 +13,7 @@ export default function RenderContent({ content }: { content: string }) {
 
   return (
     <div
-      className="prose prose-invert prose-zinc max-w-none"
+      className="prose prose-invert prose-zinc max-w-none w-full min-w-0 break-words overflow-hidden"
       dangerouslySetInnerHTML={{ __html: content }}
     />
   );

@@ -28,10 +28,10 @@ export default async function PostPage({ params }: any) {
       {/* Dynamic Background Blur using Featured Image */}
       {post.featuredImage && (
         <div className="absolute top-0 inset-x-0 h-[60vh] -z-10 overflow-hidden opacity-20 pointer-events-none">
-          <Image 
-            src={post.featuredImage} 
-            alt="background blur" 
-            fill 
+          <Image
+            src={post.featuredImage}
+            alt="background blur"
+            fill
             className="object-cover blur-[120px] saturate-[2]"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/80 to-zinc-950" />
@@ -40,13 +40,13 @@ export default async function PostPage({ params }: any) {
 
       {/* TOP PROGRESS BAR (Optional placeholder for client logic) */}
       <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-zinc-900/50">
-        <div className="h-full bg-blue-500 w-0 transition-all duration-300" id="scroll-progress" /> 
+        <div className="h-full bg-blue-500 w-0 transition-all duration-300" id="scroll-progress" />
       </div>
 
       <main className="max-w-4xl mx-auto px-6 pt-12 md:pt-24 space-y-16">
         {/* BACK BUTTON */}
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className="inline-flex items-center gap-3 text-zinc-400 hover:text-white transition-colors text-sm font-medium group"
         >
           <div className="p-2.5 rounded-full bg-zinc-900/80 border border-zinc-800 group-hover:border-chart-1 transition-colors backdrop-blur-xl">
@@ -86,23 +86,21 @@ export default async function PostPage({ params }: any) {
           <div className="relative group animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200 mx-auto max-w-5xl">
             <div className="absolute -inset-1 blur-3xl opacity-30 group-hover:opacity-60 transition duration-1000 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-[2.5rem] -z-10" />
             <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl bg-zinc-950">
-              <Image 
-                src={post.featuredImage} 
+              <Image
+                src={post.featuredImage}
                 alt={post.title}
                 width={1200}
                 height={630}
                 priority
-                className="w-full aspect-[21/9] md:aspect-video object-cover transition-transform duration-700 group-hover:scale-[1.02]" 
+                className="w-full aspect-[21/9] md:aspect-video object-cover transition-transform duration-700 group-hover:scale-[1.02]"
               />
             </div>
           </div>
         )}
 
         {/* ARTICLE CONTENT */}
-        <article className="relative max-w-3xl mx-auto bg-zinc-950/40 backdrop-blur-3xl border border-zinc-800/50 rounded-[2.5rem] p-6 md:p-12 lg:p-16 shadow-2xl animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
-
-        <RenderContent content={post.content || ""} />
-
+        <article className="w-full min-w-0 relative max-w-3xl mx-auto bg-zinc-950/40 backdrop-blur-3xl border border-zinc-800/50 rounded-[2.5rem] p-6 md:p-12 lg:p-16 shadow-2xl overflow-hidden break-words">
+          <RenderContent content={post.content || ""} />
         </article>
 
       </main>

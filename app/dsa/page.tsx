@@ -7,7 +7,6 @@ export default async function TechPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  // 🔥 FIX HERE
   const formattedPosts = posts.map((post) => ({
     ...post,
     createdAt: post.createdAt.toISOString(),
@@ -15,7 +14,7 @@ export default async function TechPage() {
 
   return (
     <main className="max-w-6xl mx-auto p-6">
-      <PostSection title="DSA" posts={formattedPosts} />
+      <PostSection title="DSA" posts={formattedPosts} hideExploreLink={true} />
     </main>
   );
 }

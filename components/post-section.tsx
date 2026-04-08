@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Clock, Calendar } from "lucide-react"
 import Image from "next/image"
 import { Category } from "@prisma/client"
+import { getPreview } from "@/lib/utils"
 
 interface Post {
   id: string
@@ -20,14 +21,21 @@ interface Post {
   slug: string
   featuredImage?: string | null
   content?: string
+  tags?: {
+    tag: {
+      id: string
+      name: string
+    }
+  }[]
 }
 
 interface PostSectionProps {
   title: string
   posts: Post[]
+  hideExploreLink?: boolean
 }
 
-export function PostSection({ title, posts }: PostSectionProps) {
+export function PostSection({ title, posts, hideExploreLink }: PostSectionProps) {
   // ✅ safer category fallback
   const category = posts?.[0]?.category ?? "TECH"
 
@@ -58,13 +66,15 @@ export function PostSection({ title, posts }: PostSectionProps) {
             {title}
           </h2>
 
-          <Link
-            href={`/${title.toLowerCase()}`}
-            className="text-sm font-medium text-chart-1 hover:text-chart-2 flex items-center gap-1 transition-colors group/link"
-          >
-            Explore all
-            <ArrowRight className="w-4 h-4 transition-transform group-hover/link:translate-x-1" />
-          </Link>
+          {!hideExploreLink && (
+            <Link
+              href={`/${title.toLowerCase()}`}
+              className="text-sm font-medium text-chart-1 hover:text-chart-2 flex items-center gap-1 transition-colors group/link"
+            >
+              Explore all
+              <ArrowRight className="w-4 h-4 transition-transform group-hover/link:translate-x-1" />
+            </Link>
+          )}
         </div>
 
         {/* EMPTY STATE ✅ */}
@@ -103,10 +113,18 @@ export function PostSection({ title, posts }: PostSectionProps) {
 
                     <CardHeader className="p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <Badge className="text-[10px] uppercase font-bold bg-zinc-800/50 text-zinc-300 border-none">
-                          {post.category}
-                        </Badge>
+                        <div className="flex items-center gap-3">
 
+                          <Badge className="text-[10px] uppercase font-bold bg-chart-2/50 text-zinc-300 border-none p-1">
+                            {post.category}
+
+                          </Badge>
+                          {post.tags?.map((t) => (
+                            <span key={t.tag.id} className="text-[10px] uppercase font-bold bg-zinc-800/70 text-zinc-300 border-none p-1 border">
+                              {t.tag.name}
+                            </span>
+                          ))}
+                        </div>
                         <div className="flex items-center text-zinc-500 text-[10px] gap-1">
                           <Calendar className="w-3 h-3" />
                           {new Date(post.createdAt).toLocaleDateString(
@@ -123,8 +141,7 @@ export function PostSection({ title, posts }: PostSectionProps) {
 
                     <CardContent className="p-4 pt-0">
                       <p className="text-xs leading-relaxed text-zinc-400 line-clamp-2">
-                        {post.description ||
-                          post.title.slice(0, 80) + "..."}
+                        {getPreview(post.content)}
                       </p>
                     </CardContent>
 
