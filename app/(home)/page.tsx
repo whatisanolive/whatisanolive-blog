@@ -1,33 +1,33 @@
-import { prisma } from "@/lib/prisma"
 import { PostSection } from "@/components/post-section"
+import { getHomePagePostSections } from "@/lib/posts";
 
 export default async function Home() {
-
-  const baseQuery = {
-    orderBy: { createdAt: "desc" as const },
-    take: 3,
-    include: {
-      tags: {
-        include: {
-          tag: true,
-        },
-      },
-    },
-  }
-
-  const [techPosts, dsaPosts, thoughtsPosts] = await Promise.all([
-    prisma.post.findMany({ ...baseQuery, where: { category: "TECH", status: "PUBLISHED" } }),
-    prisma.post.findMany({ ...baseQuery, where: { category: "DSA", status: "PUBLISHED" } }),
-    prisma.post.findMany({ ...baseQuery, where: { category: "BLANK_CANVAS", status: "PUBLISHED" } }),
-  ])
-
+  // Previous direct Prisma calls kept for reference per request.
+  // const baseQuery = {
+  //   orderBy: { createdAt: "desc" as const },
+  //   take: 3,
+  //   include: {
+  //     tags: {
+  //       include: {
+  //         tag: true,
+  //       },
+  //     },
+  //   },
+  // }
   //
+  // const [techPosts, dsaPosts, thoughtsPosts] = await Promise.all([
+  //   prisma.post.findMany({ ...baseQuery, where: { category: "TECH", status: "PUBLISHED" } }),
+  //   prisma.post.findMany({ ...baseQuery, where: { category: "DSA", status: "PUBLISHED" } }),
+  //   prisma.post.findMany({ ...baseQuery, where: { category: "BLANK_CANVAS", status: "PUBLISHED" } }),
+  // ])
+  //
+  // const formatPosts = <T extends { createdAt: Date }>(posts: T[]) =>
+  //   posts.map((post) => ({
+  //     ...post,
+  //     createdAt: post.createdAt.toISOString(),
+  //   }))
 
-  const formatPosts = <T extends { createdAt: Date }>(posts: T[]) =>
-    posts.map((post) => ({
-      ...post,
-      createdAt: post.createdAt.toISOString(),
-    }))
+  const sections = await getHomePagePostSections();
 
   return (
 
@@ -39,9 +39,9 @@ export default async function Home() {
         {/* Your Hero Section here */}
 
 
-        <PostSection title="Tech" posts={formatPosts(techPosts)} />
-        <PostSection title="DSA" posts={formatPosts(dsaPosts)} />
-        <PostSection title="Blank Canvas" posts={formatPosts(thoughtsPosts)} />
+        <PostSection title="Tech" posts={sections.TECH} />
+        <PostSection title="DSA" posts={sections.DSA} />
+        <PostSection title="Blank Canvas" posts={sections.BLANK_CANVAS} />
       </main>
     </div>
 

@@ -1,51 +1,62 @@
-import { prisma } from "@/lib/prisma";
 import { PostSection } from "@/components/post-section";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import type { Prisma } from "@prisma/client";
+import { getPostsByCategory, getTagsForCategory } from "@/lib/posts";
 
-export default async function TechPage({ searchParams }: { searchParams: Promise<{ tag?: string }> }) {
+type TechPageSearchParams = Promise<{
+  tag?: string | string[];
+}>;
+
+export default async function TechPage({
+  searchParams,
+}: {
+  searchParams: TechPageSearchParams;
+}) {
   const resolvedParams = await searchParams;
-  const activeTag = resolvedParams.tag;
+  const activeTag =
+    typeof resolvedParams.tag === "string" ? resolvedParams.tag : undefined;
 
-  // 1. Fetch available tags for Tech category
-  const availableTags = await prisma.tag.findMany({
-    where: {
-      posts: {
-        some: {
-          post: { category: "TECH", status: "PUBLISHED" },
-        },
-      },
-    },
-  });
+  // Previous page-local Prisma queries kept for reference per request.
+  // const availableTags = await prisma.tag.findMany({
+  //   where: {
+  //     posts: {
+  //       some: {
+  //         post: { category: "TECH", status: "PUBLISHED" },
+  //       },
+  //     },
+  //   },
+  // });
+  //
+  // const whereClause: Prisma.PostWhereInput = {
+  //   category: "TECH",
+  //   status: "PUBLISHED",
+  // };
+  //
+  // if (activeTag) {
+  //   whereClause.tags = { some: { tag: { name: activeTag } } };
+  // }
+  //
+  // const posts = await prisma.post.findMany({
+  //   where: whereClause,
+  //   orderBy: { createdAt: "desc" },
+  //   include: {
+  //     tags: {
+  //       include: {
+  //         tag: true,
+  //       },
+  //     },
+  //   },
+  // });
+  //
+  // const formattedPosts = posts.map((post) => ({
+  //   ...post,
+  //   createdAt: post.createdAt.toISOString(),
+  // }));
 
-  // 2. Build properly typed where clause
-  const whereClause: Prisma.PostWhereInput = {
-    category: "TECH",
-    status: "PUBLISHED",
-  };
-
-  if (activeTag) {
-    whereClause.tags = { some: { tag: { name: activeTag } } };
-  }
-
-  // 3. Fetch posts, filtered if a tag is selected
-  const posts = await prisma.post.findMany({
-    where: whereClause,
-    orderBy: { createdAt: "desc" },
-    include: {
-      tags: {
-        include: {
-          tag: true,
-        },
-      },
-    },
-  });
-
-  const formattedPosts = posts.map((post) => ({
-    ...post,
-    createdAt: post.createdAt.toISOString(),
-  }));
+  const [availableTags, posts] = await Promise.all([
+    getTagsForCategory("TECH"),
+    getPostsByCategory("TECH", activeTag),
+  ]);
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-8">
@@ -70,7 +81,7 @@ export default async function TechPage({ searchParams }: { searchParams: Promise
         </div>
       )}
 
-      <PostSection title="Tech" posts={formattedPosts} hideExploreLink={true} />
+      <PostSection title="Tech" posts={posts} hideExploreLink={true} />
     </main>
   );
 }

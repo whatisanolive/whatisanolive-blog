@@ -8,34 +8,20 @@ import {
 } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useState, useActionState, useRef, useMemo, useCallback } from "react";
-import dynamic from "next/dynamic";
+import { useState, useActionState, useRef, useCallback } from "react";
 import { Button } from "../ui/button";
-import "react-quill-new/dist/quill.snow.css";
 import { createPost } from "@/actions/create-post";
-import hljs from "highlight.js"
-import "highlight.js/styles/github.css" // or any theme
-
-if (typeof window !== "undefined") {
-  (window as any).hljs = hljs;
-}
-
-const ReactQuill = dynamic(
-  async () => {
-    const { default: RQ } = await import("react-quill-new");
-    // eslint-disable-next-line react/display-name
-    return ({ forwardedRef, ...props }: any) => <RQ ref={forwardedRef} {...props} />;
-  },
-  {
-    ssr: false,
-  }
-);
-
-
-
+import Image from "next/image";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import {
+  RichTextEditor,
+  type ReactQuillInstance,
+} from "@/components/posts/rich-text-editor";
 
 export default function CreatePostPage() {
-  const quillRef = useRef<any>(null);
+  // Previous ref kept for reference per request.
+  // const quillRef = useRef<any>(null);
+  const quillRef = useRef<ReactQuillInstance | null>(null);
 
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -48,23 +34,27 @@ export default function CreatePostPage() {
 
 
 
-  // 🔥 Upload function
-  const uploadImage = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "blog_upload");
-
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/deoj5kwfb/image/upload",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    const data = await res.json();
-    return data.secure_url;
-  };
+  // Previous inline Cloudinary upload function kept for reference per request.
+  // const uploadImage = async (file: File) => {
+  //   const formData = new FormData();
+  //   formData.append("file", file);
+  //   formData.append("upload_preset", "blog_upload");
+  //
+  //   const res = await fetch(
+  //     "https://api.cloudinary.com/v1_1/deoj5kwfb/image/upload",
+  //     {
+  //       method: "POST",
+  //       body: formData,
+  //     }
+  //   );
+  //
+  //   const data = await res.json();
+  //   return data.secure_url;
+  // };
+  const uploadImage = useCallback(
+    async (file: File) => uploadImageToCloudinary(file),
+    [],
+  );
 
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
@@ -80,7 +70,7 @@ export default function CreatePostPage() {
           const url = await uploadImage(file);
           const quill = quillRef.current?.getEditor();
           if (quill) {
-            const range = quill.getSelection(true) || { index: content.length };
+            const range = quill.getSelection(true) || { index: quill.getLength() };
             quill.insertEmbed(range.index, "image", url);
             quill.setSelection(range.index + 1);
           }
@@ -91,27 +81,7 @@ export default function CreatePostPage() {
         }
       }
     };
-  }, [content]);
-
-  const modules = useMemo(
-    () => ({
-      toolbar: {
-        container: [
-          [{ header: [1, 2, 3, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ list: "ordered" }, { list: "bullet" }],
-          ["blockquote", "code-block"],
-          ["link", "image"],
-          ["clean"],
-        ],
-        handlers: {
-          image: imageHandler,
-        },
-      },
-      syntax: true,
-    }),
-    [imageHandler]
-  );
+  }, [uploadImage]);
 
   // 🔥 File handler
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,7 +146,14 @@ export default function CreatePostPage() {
               {uploading && <p>Uploading...</p>}
 
               {imageUrl && (
-                <img src={imageUrl} className="w-40 rounded" />
+                <Image
+                  src={imageUrl}
+                  alt="Featured image preview"
+                  width={160}
+                  height={90}
+                  sizes="160px"
+                  className="w-40 rounded object-cover"
+                />
               )}
 
               {/* 🔥 IMPORTANT hidden input */}
@@ -197,7 +174,14 @@ export default function CreatePostPage() {
             <div className="space-y-2">
               <Label>Content</Label>
 
-              <ReactQuill forwardedRef={quillRef} value={content} onChange={setContent} modules={modules}/>
+              {/* Previous inline dynamic ReactQuill wrapper kept for reference per request. */}
+              {/* <ReactQuill forwardedRef={quillRef} value={content} onChange={setContent} modules={modules}/> */}
+              <RichTextEditor
+                editorRef={quillRef}
+                onImageRequest={imageHandler}
+                onChange={setContent}
+                value={content}
+              />
 
               <input
                 type="hidden"

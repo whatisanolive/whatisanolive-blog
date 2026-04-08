@@ -1,23 +1,26 @@
-import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, Clock, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import RenderContent from '@/components/RenderContent';
+import { getPostBySlug } from "@/lib/posts";
 
 export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = await params;
 
-  const post = await prisma.post.findUnique({
-    where: { slug: resolvedParams.slug },
-    include: {
-      tags: {
-        include: {
-          tag: true,
-        },
-      },
-    },
-  });
+  // Previous direct Prisma query kept for reference per request.
+  // const post = await prisma.post.findUnique({
+  //   where: { slug: resolvedParams.slug },
+  //   include: {
+  //     tags: {
+  //       include: {
+  //         tag: true,
+  //       },
+  //     },
+  //   },
+  // });
+
+  const post = await getPostBySlug(resolvedParams.slug);
 
   if (!post) return (
     <div className="min-h-screen flex items-center justify-center text-zinc-500">
@@ -39,6 +42,7 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
             src={post.featuredImage}
             alt="background blur"
             fill
+            sizes="100vw"
             className="object-cover blur-[120px] saturate-[2]"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/80 to-zinc-950" />
@@ -105,7 +109,8 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
                 alt={post.title}
                 width={1200}
                 height={630}
-                priority
+                sizes="(max-width: 1024px) 100vw, 1200px"
+                preload
                 className="w-full aspect-[21/9] md:aspect-video object-cover transition-transform duration-700 group-hover:scale-[1.02]"
               />
             </div>

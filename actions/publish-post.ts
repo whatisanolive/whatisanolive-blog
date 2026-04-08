@@ -1,16 +1,37 @@
 "use server";
 import {prisma} from '@/lib/prisma'
-import { revalidatePath } from 'next/cache';
+import { revalidateBlogData } from '@/lib/post-actions';
 export async function publishPost(formData: FormData) {
   const id = formData.get("id") as string;
 
-  await prisma.post.update({
+  // Previous single-path revalidation kept for reference per request.
+  // await prisma.post.update({
+  //   where: { id },
+  //   data: {
+  //     status: "PUBLISHED",
+  //     publishedAt: new Date(),
+  //   },
+  // });
+  //
+  // revalidatePath("/admin");
+
+  const post = await prisma.post.update({
     where: { id },
     data: {
       status: "PUBLISHED",
       publishedAt: new Date(),
     },
+    select: {
+      slug: true,
+    },
   });
 
-  revalidatePath("/admin");
+  revalidateBlogData([
+    "/",
+    "/admin",
+    "/tech",
+    "/dsa",
+    "/blank-canvas",
+    `/post/${post.slug}`,
+  ]);
 }

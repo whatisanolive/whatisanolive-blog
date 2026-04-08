@@ -1,7 +1,7 @@
 import { getOrCreateUser } from "@/lib/getOrCreateUser";
-import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import AdminDashboard from "@/components/admin-dashboard/admin-dashboard";
+import { getAdminDashboardData } from "@/lib/posts";
 
 const Admin = async () => {
   const user = await getOrCreateUser();
@@ -10,25 +10,23 @@ const Admin = async () => {
     redirect("/");
   }
 
-  const [postsCount, commentsCount, likesCount] = await Promise.all([
-    prisma.post.count(),
-    prisma.comment.count(),
-    prisma.like.count(),
-  ]);
+  // Previous dashboard queries kept for reference per request.
+  // const [postsCount, commentsCount, likesCount] = await Promise.all([
+  //   prisma.post.count(),
+  //   prisma.comment.count(),
+  //   prisma.like.count(),
+  // ]);
+  //
+  // const posts = await prisma.post.findMany({
+  //   orderBy: {createdAt: "desc"},
+  //   take: 5,
+  // });
 
-  const posts = await prisma.post.findMany({
-    orderBy: {createdAt: "desc"},
-    take: 5,
-  });
-
+  const { stats, posts } = await getAdminDashboardData();
 
   return <AdminDashboard
         user={user}
-        stats={{
-        postsCount,
-        commentsCount,
-        likesCount,
-      }}
+        stats={stats}
       posts={posts}/>; //  pass data
 };
 

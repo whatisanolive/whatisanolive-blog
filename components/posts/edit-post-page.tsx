@@ -8,45 +8,32 @@ import {
 } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useState, useActionState, useRef, useMemo, useCallback } from "react";
-import dynamic from "next/dynamic";
+import { useState, useActionState, useRef, useCallback } from "react";
 import { Button } from "../ui/button";
-import "react-quill-new/dist/quill.snow.css";
 import { editPost } from "@/actions/edit-post";
-import type { Post } from "@prisma/client";
-import { Prisma } from "@prisma/client";
 import Image from "next/image";
-import hljs from "highlight.js"
-import "highlight.js/styles/github.css" // or any theme
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import {
+  RichTextEditor,
+  type ReactQuillInstance,
+} from "@/components/posts/rich-text-editor";
+import type { EditablePost } from "@/lib/posts";
 
-if (typeof window !== "undefined") {
-  (window as any).hljs = hljs;
-}
+// Previous Prisma PostWithTags helper kept for reference per request.
+// type PostWithTags = Prisma.PostGetPayload<{
+//   include: {
+//     tags: {
+//       include: {
+//         tag: true;
+//       };
+//     };
+//   };
+// }>;
 
-const ReactQuill = dynamic(
-  async () => {
-    const { default: RQ } = await import("react-quill-new");
-    // eslint-disable-next-line react/display-name
-    return ({ forwardedRef, ...props }: any) => <RQ ref={forwardedRef} {...props} />;
-  },
-  {
-    ssr: false,
-  }
-);
-
-
-type PostWithTags = Prisma.PostGetPayload<{
-  include: {
-    tags: {
-      include: {
-        tag: true;
-      };
-    };
-  };
-}>;
-
-const EditPostPage = ({ post }: { post: PostWithTags }) => {
-  const quillRef = useRef<any>(null);
+const EditPostPage = ({ post }: { post: EditablePost }) => {
+  // Previous ref kept for reference per request.
+  // const quillRef = useRef<any>(null);
+  const quillRef = useRef<ReactQuillInstance | null>(null);
 
   const [content, setContent] = useState(post.content || "");
   const [imageUrl, setImageUrl] = useState(post.featuredImage || "");
@@ -61,23 +48,27 @@ const EditPostPage = ({ post }: { post: PostWithTags }) => {
 
 
 
-  // 🔥 Upload function
-  const uploadImage = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "blog_upload");
-
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/deoj5kwfb/image/upload",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    const data = await res.json();
-    return data.secure_url;
-  };
+  // Previous inline Cloudinary upload function kept for reference per request.
+  // const uploadImage = async (file: File) => {
+  //   const formData = new FormData();
+  //   formData.append("file", file);
+  //   formData.append("upload_preset", "blog_upload");
+  //
+  //   const res = await fetch(
+  //     "https://api.cloudinary.com/v1_1/deoj5kwfb/image/upload",
+  //     {
+  //       method: "POST",
+  //       body: formData,
+  //     }
+  //   );
+  //
+  //   const data = await res.json();
+  //   return data.secure_url;
+  // };
+  const uploadImage = useCallback(
+    async (file: File) => uploadImageToCloudinary(file),
+    [],
+  );
 
   const imageHandler = useCallback(() => {
     const input = document.createElement("input");
@@ -93,7 +84,7 @@ const EditPostPage = ({ post }: { post: PostWithTags }) => {
           const url = await uploadImage(file);
           const quill = quillRef.current?.getEditor();
           if (quill) {
-            const range = quill.getSelection(true) || { index: content.length };
+            const range = quill.getSelection(true) || { index: quill.getLength() };
             quill.insertEmbed(range.index, "image", url);
             quill.setSelection(range.index + 1);
           }
@@ -104,27 +95,7 @@ const EditPostPage = ({ post }: { post: PostWithTags }) => {
         }
       }
     };
-  }, [content]);
-
-  const modules = useMemo(
-    () => ({
-      toolbar: {
-        container: [
-          [{ header: [1, 2, 3, false] }],
-          ["bold", "italic", "underline", "strike"],
-          [{ list: "ordered" }, { list: "bullet" }],
-          ["blockquote", "code-block"],
-          ["link", "image"],
-          ["clean"],
-        ],
-        handlers: {
-          image: imageHandler,
-        },
-      },
-      syntax: true,
-    }),
-    [imageHandler]
-  );
+  }, [uploadImage]);
 
   // 🔥 File handler
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,7 +167,14 @@ const EditPostPage = ({ post }: { post: PostWithTags }) => {
               {uploading && <p>Uploading...</p>}
 
               {imageUrl && (
-                <img src={imageUrl} className="w-48 h-32 object-cover rounded-md" alt="featured image" />
+                <Image
+                  src={imageUrl}
+                  alt="Featured image preview"
+                  width={192}
+                  height={128}
+                  sizes="192px"
+                  className="h-32 w-48 rounded-md object-cover"
+                />
               )}
 
               {/* 🔥 IMPORTANT hidden input */}
@@ -217,7 +195,14 @@ const EditPostPage = ({ post }: { post: PostWithTags }) => {
             <div className="space-y-2">
               <Label>Content</Label>
 
-              <ReactQuill forwardedRef={quillRef} value={content} onChange={setContent} modules={modules} />
+              {/* Previous inline dynamic ReactQuill wrapper kept for reference per request. */}
+              {/* <ReactQuill forwardedRef={quillRef} value={content} onChange={setContent} modules={modules} /> */}
+              <RichTextEditor
+                editorRef={quillRef}
+                onImageRequest={imageHandler}
+                onChange={setContent}
+                value={content}
+              />
 
               <input
                 type="hidden"

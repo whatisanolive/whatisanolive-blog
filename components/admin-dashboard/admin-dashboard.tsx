@@ -5,14 +5,8 @@ import { Button } from '../ui/button'
 import { CirclePlus, FileChartColumn,Heart,MessageCircle } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card'
 import RecentPosts from './recent-posts'
-import { Post } from "@prisma/client";
-
-type User = {
-  id: string;
-  name: string;
-  email: string;
-  role: "ADMIN" | "USER";
-};
+import type { AdminRecentPost } from '@/lib/posts';
+import type { SessionUser } from '@/lib/getOrCreateUser';
 
 type Stats = {
   postsCount: number;
@@ -26,9 +20,9 @@ const AdminDashboard = ({
   stats,
   posts,
 }: {
-  user: User;
+  user: SessionUser;
   stats: Stats;
-  posts: Post[]
+  posts: AdminRecentPost[]
 }) => {
   return (
     <main className="flex-1 p-4 md:p-8 ">
@@ -36,7 +30,7 @@ const AdminDashboard = ({
         <div>
           
       <h1>Admin Dashboard</h1>
-      <p>Manage content and get analytics</p>
+      <p>Manage content and get analytics for {user.name || user.email}</p>
         </div>
 
       <Link href="/admin/posts/create">

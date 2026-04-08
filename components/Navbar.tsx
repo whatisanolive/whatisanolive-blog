@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { Show, SignInButton, UserButton } from '@clerk/nextjs'
 import { Menu } from "lucide-react";
+import { Suspense } from "react";
 import {
   Sheet,
   SheetContent,
@@ -47,28 +48,17 @@ export default function Navbar() {
 
             {/* Desktop Auth (Hidden on mobile) */}
             <div className="hidden md:flex items-center gap-2">
-              <Show when="signed-out">
-                <SignInButton><Button>Sign in</Button></SignInButton>
-              </Show>
-              <Show when="signed-in">
-                <UserButton appearance={{
-                  elements: {
-                    avatarBox: "border border-white",
-                  },
-                }} />
-              </Show>
+              <Suspense fallback={<DesktopAuthFallback />}>
+                <DesktopAuthControls />
+              </Suspense>
             </div>
 
             {/* MOBILE NAVIGATION (Sheet) */}
             <div className="md:hidden flex items-center gap-2">
               {/* Keep UserButton visible on mobile too */}
-              <Show when="signed-in">
-                <UserButton appearance={{
-                  elements: {
-                    avatarBox: "border border-white w-8 h-8",
-                  },
-                }} />
-              </Show>
+              <Suspense fallback={null}>
+                <MobileAuthControls />
+              </Suspense>
 
               <Sheet>
                 <SheetTrigger asChild>
@@ -93,11 +83,9 @@ export default function Navbar() {
                     ))}
 
                     <div className="pt-4">
-                      <Show when="signed-out">
-                        <SignInButton>
-                          <Button className="w-full">Sign in</Button>
-                        </SignInButton>
-                      </Show>
+                      <Suspense fallback={<Button className="w-full">Sign in</Button>}>
+                        <MobileSheetAuthControls />
+                      </Suspense>
                     </div>
                   </div>
                 </SheetContent>
@@ -108,5 +96,48 @@ export default function Navbar() {
         </div>
       </div>
     </nav>
+  );
+}
+
+function DesktopAuthControls() {
+  return (
+    <>
+      <Show when="signed-out">
+        <SignInButton><Button>Sign in</Button></SignInButton>
+      </Show>
+      <Show when="signed-in">
+        <UserButton appearance={{
+          elements: {
+            avatarBox: "border border-white",
+          },
+        }} />
+      </Show>
+    </>
+  );
+}
+
+function DesktopAuthFallback() {
+  return <Button disabled>Account</Button>;
+}
+
+function MobileAuthControls() {
+  return (
+    <Show when="signed-in">
+      <UserButton appearance={{
+        elements: {
+          avatarBox: "border border-white w-8 h-8",
+        },
+      }} />
+    </Show>
+  );
+}
+
+function MobileSheetAuthControls() {
+  return (
+    <Show when="signed-out">
+      <SignInButton>
+        <Button className="w-full">Sign in</Button>
+      </SignInButton>
+    </Show>
   );
 }

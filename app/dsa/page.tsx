@@ -1,66 +1,73 @@
-import { prisma } from "@/lib/prisma";
 import { PostSection } from "@/components/post-section";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import type { Prisma } from "@prisma/client";
+import { getPostsByCategory, getTagsForCategory } from "@/lib/posts";
+
+type DSAPageSearchParams = Promise<{
+  tag?: string | string[];
+}>;
 
 export default async function DSAPage({
   searchParams,
 }: {
-  searchParams: { tag?: string };
+  searchParams: DSAPageSearchParams;
 }) {
-  const activeTag = searchParams?.tag;
+  const resolvedParams = await searchParams;
+  const activeTag =
+    typeof resolvedParams.tag === "string" ? resolvedParams.tag : undefined;
 
-  // 🔥 1. Get available tags
-  const availableTags = await prisma.tag.findMany({
-    where: {
-      posts: {
-        some: {
-          post: {
-            category: "DSA",
-            status: "PUBLISHED",
-          },
-        },
-      },
-    },
-  });
+  // Previous page-local Prisma queries kept for reference per request.
+  // const availableTags = await prisma.tag.findMany({
+  //   where: {
+  //     posts: {
+  //       some: {
+  //         post: {
+  //           category: "DSA",
+  //           status: "PUBLISHED",
+  //         },
+  //       },
+  //     },
+  //   },
+  // });
+  //
+  // const whereClause: Prisma.PostWhereInput = {
+  //   category: "DSA",
+  //   status: "PUBLISHED",
+  // };
+  //
+  // if (activeTag) {
+  //   whereClause.tags = {
+  //     some: {
+  //       tag: {
+  //         name: activeTag,
+  //       },
+  //     },
+  //   };
+  // }
+  //
+  // const posts = await prisma.post.findMany({
+  //   where: whereClause,
+  //   orderBy: { createdAt: "desc" },
+  //   include: {
+  //     tags: {
+  //       include: {
+  //         tag: true,
+  //       },
+  //     },
+  //   },
+  // });
+  //
+  // const formattedPosts = posts.map((post) => ({
+  //   ...post,
+  //   createdAt: post.createdAt?.toISOString?.() ?? new Date().toISOString(),
+  //   content: post.content || "",
+  //   tags: post.tags || [],
+  // }));
 
-  // 🔥 2. Build filter
-  const whereClause: Prisma.PostWhereInput = {
-    category: "DSA",
-    status: "PUBLISHED",
-  };
-
-  if (activeTag) {
-    whereClause.tags = {
-      some: {
-        tag: {
-          name: activeTag,
-        },
-      },
-    };
-  }
-
-  // 🔥 3. Fetch posts WITH tags
-  const posts = await prisma.post.findMany({
-    where: whereClause,
-    orderBy: { createdAt: "desc" },
-    include: {
-      tags: {
-        include: {
-          tag: true,
-        },
-      },
-    },
-  });
-
-  // 🔥 4. Safe formatting (prevents build crashes)
-  const formattedPosts = posts.map((post) => ({
-    ...post,
-    createdAt: post.createdAt?.toISOString?.() ?? new Date().toISOString(),
-    content: post.content || "",
-    tags: post.tags || [],
-  }));
+  const [availableTags, posts] = await Promise.all([
+    getTagsForCategory("DSA"),
+    getPostsByCategory("DSA", activeTag),
+  ]);
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-8">
@@ -76,8 +83,8 @@ export default async function DSAPage({
           <Link href="/dsa">
             <Badge
               className={`px-3 py-1 cursor-pointer transition-all duration-200 ${!activeTag
-                  ? "bg-chart-1 text-zinc-950 shadow"
-                  : "bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                ? "bg-chart-1 text-zinc-950 shadow"
+                : "bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800"
                 }`}
             >
               All
@@ -89,8 +96,8 @@ export default async function DSAPage({
             <Link key={tag.id} href={`/dsa?tag=${tag.name}`}>
               <Badge
                 className={`px-3 py-1 cursor-pointer transition-all duration-200 ${activeTag === tag.name
-                    ? "bg-chart-1 text-zinc-950 shadow"
-                    : "bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800"
+                  ? "bg-chart-1 text-zinc-950 shadow"
+                  : "bg-zinc-800/50 text-zinc-400 hover:text-white hover:bg-zinc-800"
                   }`}
               >
                 {tag.name}
@@ -103,7 +110,7 @@ export default async function DSAPage({
       {/* 🔥 POSTS */}
       <PostSection
         title="DSA"
-        posts={formattedPosts}
+        posts={posts}
         hideExploreLink={true}
       />
     </main>

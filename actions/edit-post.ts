@@ -1,49 +1,48 @@
 "use server";
 
-import { z } from "zod";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import slugify from "slugify";
 import { currentUser } from "@clerk/nextjs/server";
-import { revalidatePath } from "next/cache";
+import {
+  buildPostSlug,
+  parsePostFormData,
+  revalidateBlogData,
+  syncPostTags,
+  type PostActionState,
+} from "@/lib/post-actions";
 
-const editPostSchema = z.object({
-  title: z.string().min(3).max(100),
-  category: z.string().min(3).max(50),
-  tags: z
-    .string()
-    .min(1)
-    .transform((val) =>
-      val.split(",").map((tag) => tag.trim()).filter(Boolean)
-    ),
-  content: z.string().min(50),
-  featuredImage: z.string().optional(),
-});
-
-type EditPostFormState = {
-  errors: {
-    title?: string[];
-    category?: string[];
-    tags?: string[];
-    content?: string[];
-    featuredImage?: string[];
-    formErrors?: string[];
-  };
-};
+// Previous schema and form state kept for reference per request.
+// const editPostSchema = z.object({
+//   title: z.string().min(3).max(100),
+//   category: z.string().min(3).max(50),
+//   tags: z
+//     .string()
+//     .min(1)
+//     .transform((val) =>
+//       val.split(",").map((tag) => tag.trim()).filter(Boolean)
+//     ),
+//   content: z.string().min(50),
+//   featuredImage: z.string().optional(),
+// });
+//
+// type EditPostFormState = {
+//   errors: {
+//     title?: string[];
+//     category?: string[];
+//     tags?: string[];
+//     content?: string[];
+//     featuredImage?: string[];
+//     formErrors?: string[];
+//   };
+// };
 
 export const editPost = async (
   postId: string,
-  prevState: EditPostFormState,
+  prevState: PostActionState,
   formData: FormData
-): Promise<EditPostFormState> => {
+): Promise<PostActionState> => {
   // ✅ Validate form
-  const result = editPostSchema.safeParse({
-    title: formData.get("title") as string,
-    category: formData.get("category") as string,
-    tags: formData.get("tags") as string,
-    content: formData.get("content") as string,
-    featuredImage: formData.get("featuredImage") || "",
-  });
+  const result = parsePostFormData(formData);
 
   if (!result.success) {
     return {
@@ -74,11 +73,19 @@ export const editPost = async (
     };
   }
 
-  const existingPost = await prisma.post.findUnique({
-    where: { id: postId, authorId: dbUser.id },
+  const existingPost = await prisma.post.findFirst({
+    where:
+      dbUser.role === "ADMIN"
+        ? { id: postId }
+        : { id: postId, authorId: dbUser.id },
+    select: {
+      id: true,
+      featuredImage: true,
+      slug: true,
+    },
   });
 
-  if (!existingPost && dbUser.role !== 'ADMIN') {
+  if (!existingPost) {
       return {
           errors: {
               formErrors: ["Post not found or unauthorized"],
@@ -86,49 +93,63 @@ export const editPost = async (
       };
   }
 
-  const imageUrl = formData.get("featuredImage") as string | null;
-
   // ✅ Generate slug
-  const slug = slugify(result.data.title, {
-    lower: true,
-    strict: true,
-  });
+  const slug = buildPostSlug(result.data.title);
 
   try {
-    // ✅ Update post
-    await prisma.post.update({
-      where: { id: postId },
-      data: {
-        title: result.data.title,
-        slug,
-        content: result.data.content,
-        category: result.data.category as any,
-        featuredImage: imageUrl || existingPost?.featuredImage || null,
-      },
-    });
+    // Previous `category as any` cast and sequential tag writes kept for reference per request.
+    // await prisma.post.update({
+    //   where: { id: postId },
+    //   data: {
+    //     title: result.data.title,
+    //     slug,
+    //     content: result.data.content,
+    //     category: result.data.category as any,
+    //     featuredImage: imageUrl || existingPost?.featuredImage || null,
+    //   },
+    // });
+    //
+    // await prisma.postTag.deleteMany({
+    //     where: { postId: postId }
+    // });
+    //
+    // for (const tagName of result.data.tags) {
+    //   const tag = await prisma.tag.upsert({
+    //     where: { name: tagName },
+    //     update: {},
+    //     create: {
+    //       name: tagName,
+    //       slug: slugify(tagName, { lower: true }),
+    //     },
+    //   });
+    //
+    //   await prisma.postTag.create({
+    //     data: {
+    //       postId: postId,
+    //       tagId: tag.id,
+    //     },
+    //   });
+    // }
 
-    // Handle tags (delete existing and recreate)
-    await prisma.postTag.deleteMany({
-        where: { postId: postId }
-    });
-
-    for (const tagName of result.data.tags) {
-      const tag = await prisma.tag.upsert({
-        where: { name: tagName },
-        update: {},
-        create: {
-          name: tagName,
-          slug: slugify(tagName, { lower: true }),
-        },
-      });
-
-      await prisma.postTag.create({
+    await prisma.$transaction(async (tx) => {
+      await tx.post.update({
+        where: { id: postId },
         data: {
-          postId: postId,
-          tagId: tag.id,
+          title: result.data.title,
+          slug,
+          content: result.data.content,
+          category: result.data.category,
+          featuredImage:
+            result.data.featuredImage || existingPost.featuredImage || null,
         },
       });
-    }
+
+      await tx.postTag.deleteMany({
+        where: { postId },
+      });
+
+      await syncPostTags(tx, postId, result.data.tags);
+    });
   } catch (err) {
     console.error(err);
 
@@ -139,6 +160,14 @@ export const editPost = async (
     };
   }
 
-  revalidatePath('/admin')
+  revalidateBlogData([
+    "/",
+    "/admin",
+    "/tech",
+    "/dsa",
+    "/blank-canvas",
+    `/post/${existingPost.slug}`,
+    `/post/${slug}`,
+  ]);
   redirect("/admin");
 };

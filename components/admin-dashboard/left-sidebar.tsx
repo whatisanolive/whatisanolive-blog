@@ -29,9 +29,17 @@ const LeftSidebar = () => {
 
                 <SheetContent side={"left"} className="w-[250px]">
                     <SheetHeader>
-                        <SheetTitle></SheetTitle>
+                        <SheetTitle>Admin Menu</SheetTitle>
+                        <SheetDescription>
+                            Quick links for managing your blog.
+                        </SheetDescription>
                     </SheetHeader>
                     <DashboardSidebar />
+                    <SheetFooter>
+                        <SheetClose asChild>
+                            <Button variant="outline">Close</Button>
+                        </SheetClose>
+                    </SheetFooter>
                 </SheetContent>
             </Sheet>
 

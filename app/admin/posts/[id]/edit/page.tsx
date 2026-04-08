@@ -1,31 +1,35 @@
 import EditPostPage from '@/components/posts/edit-post-page'
-import { prisma } from '@/lib/prisma'
+import { getEditablePostById } from '@/lib/posts'
 
 type EditPostParams = {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 const Page = async ({ params }: EditPostParams) => {
   const resolvedParams = await params;
   const id = resolvedParams.id;
 
-  console.log("PARAMS:", resolvedParams)
+  // Previous debug log kept for reference per request.
+  // console.log("PARAMS:", resolvedParams)
 
   if(!id) return <h2>No id provided</h2>
 
-  const post = await prisma.post.findUnique({
-  where: { id },
-  include: {
-    tags: {
-      include: {
-        tag: true,
-      },
-    },
-  },
-});
+  // Previous direct Prisma query kept for reference per request.
+  // const post = await prisma.post.findUnique({
+  // where: { id },
+  // include: {
+  //   tags: {
+  //     include: {
+  //       tag: true,
+  //     },
+  //   },
+  // },
+  // });
+
+  const post = await getEditablePostById(id);
 
 
-  if (!post) return <h2>Article not found for this id {params.id}</h2>
+  if (!post) return <h2>Article not found for this id {id}</h2>
 
   return (
     <div>

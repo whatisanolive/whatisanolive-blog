@@ -4,11 +4,11 @@ import { Button } from '../ui/button'
 import { ArrowRight } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table'
 import Link from 'next/link'
-import { Post } from "@prisma/client";
 import { deletePost } from "@/actions/delete-post";
 import { publishPost } from "@/actions/publish-post";
+import type { AdminRecentPost } from '@/lib/posts';
 
-const RecentPosts = ({posts}: { posts: Post[] }) => {
+const RecentPosts = ({posts}: { posts: AdminRecentPost[] }) => {
   return (
     <Card >
         <CardHeader>

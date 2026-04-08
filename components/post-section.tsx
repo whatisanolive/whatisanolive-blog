@@ -11,27 +11,29 @@ import { ArrowRight, Clock, Calendar } from "lucide-react"
 import Image from "next/image"
 import { Category } from "@prisma/client"
 import { getPreview } from "@/lib/utils"
+import type { PublicPostCard } from "@/lib/posts";
 
-interface Post {
-  id: string
-  title: string
-  description?: string | null
-  createdAt: string
-  category: Category
-  slug: string
-  featuredImage?: string | null
-  content?: string
-  tags?: {
-    tag: {
-      id: string
-      name: string
-    }
-  }[]
-}
+// Previous local Post interface kept for reference per request.
+// interface Post {
+//   id: string
+//   title: string
+//   description?: string | null
+//   createdAt: string
+//   category: Category
+//   slug: string
+//   featuredImage?: string | null
+//   content?: string
+//   tags?: {
+//     tag: {
+//       id: string
+//       name: string
+//     }
+//   }[]
+// }
 
 interface PostSectionProps {
   title: string
-  posts: Post[]
+  posts: PublicPostCard[]
   hideExploreLink?: boolean
 }
 
@@ -45,6 +47,12 @@ export function PostSection({ title, posts, hideExploreLink }: PostSectionProps)
     BLANK_CANVAS: "#a855f7",
   };
   const color = neonColor[category] || "#3b82f6";
+  const exploreHref =
+    {
+      tech: "/tech",
+      dsa: "/dsa",
+      "blank canvas": "/blank-canvas",
+    }[title.toLowerCase()] ?? `/${title.toLowerCase().replace(/\s+/g, "-")}`;
 
   return (
     <section className="group/section relative w-full lg:w-[90vw] lg:max-w-6xl mx-auto py-10 my-12">
@@ -56,7 +64,11 @@ export function PostSection({ title, posts, hideExploreLink }: PostSectionProps)
     transition-all duration-300
     group-hover:border-blue-500
     group-hover:shadow-[0_0_20px_rgba(59,130,246,0.4)]
-  "/>
+  "
+        style={{
+          boxShadow: `0 0 24px ${color}1f`,
+        }}
+      />
 
       <div className="relative z-10 px-6 py-8 md:px-10 space-y-8 ">
 
@@ -68,7 +80,7 @@ export function PostSection({ title, posts, hideExploreLink }: PostSectionProps)
 
           {!hideExploreLink && (
             <Link
-              href={`/${title.toLowerCase()}`}
+              href={exploreHref}
               className="text-sm font-medium text-chart-1 hover:text-chart-2 flex items-center gap-1 transition-colors group/link"
             >
               Explore all
@@ -106,6 +118,7 @@ export function PostSection({ title, posts, hideExploreLink }: PostSectionProps)
                           alt={post.title}
                           width={400}
                           height={160}
+                          sizes="(max-width: 768px) 100vw, 33vw"
                           className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
                         />
                       </div>
