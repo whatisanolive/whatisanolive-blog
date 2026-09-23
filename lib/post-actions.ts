@@ -120,7 +120,8 @@ export function revalidateBlogData(paths: string[]): void {
   revalidateTag(BLOG_CACHE_TAGS.posts, "max");
   revalidateTag(BLOG_CACHE_TAGS.tags, "max");
 
-  for (const path of new Set(paths)) {
+  // The admin lists are always affected by a post change.
+  for (const path of new Set([...paths, "/admin", "/admin/posts"])) {
     revalidatePath(path);
   }
 }

@@ -8,22 +8,16 @@ import {
 } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useState, useActionState, useRef, useCallback } from "react";
+import { useState, useActionState, useCallback, useRef } from "react";
 import { Button } from "../ui/button";
 import { createPost } from "@/actions/create-post";
 import Image from "next/image";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
-import {
-  RichTextEditor,
-  type ReactQuillInstance,
-} from "@/components/posts/rich-text-editor";
+import { MarkdownEditor } from "@/components/posts/markdown-editor";
+import { POST_TEMPLATES } from "@/lib/post-templates";
 
 export default function CreatePostPage() {
-  // Previous ref kept for reference per request.
-  // const quillRef = useRef<any>(null);
-  const quillRef = useRef<ReactQuillInstance | null>(null);
-
-  const [content, setContent] = useState("");
+  const categoryRef = useRef<HTMLSelectElement>(null);
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
@@ -56,33 +50,6 @@ export default function CreatePostPage() {
     [],
   );
 
-  const imageHandler = useCallback(() => {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    input.setAttribute("accept", "image/*");
-    input.click();
-
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (file) {
-        setUploading(true);
-        try {
-          const url = await uploadImage(file);
-          const quill = quillRef.current?.getEditor();
-          if (quill) {
-            const range = quill.getSelection(true) || { index: quill.getLength() };
-            quill.insertEmbed(range.index, "image", url);
-            quill.setSelection(range.index + 1);
-          }
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setUploading(false);
-        }
-      }
-    };
-  }, [uploadImage]);
-
   // 🔥 File handler
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -101,7 +68,7 @@ export default function CreatePostPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-7">
+    <div className="max-w-6xl mx-auto p-7">
       <Card>
         <CardHeader>
           <CardTitle>Create New Post</CardTitle>
@@ -124,7 +91,7 @@ export default function CreatePostPage() {
             {/* CATEGORY */}
             <div className="space-y-2">
               <Label>Category</Label>
-              <select name="category" className="w-full border h-10 px-3">
+              <select ref={categoryRef} name="category" className="w-full border h-10 px-3">
                 <option value="TECH">Tech</option>
                 <option value="DSA">DSA</option>
                 <option value="BLANK_CANVAS">Blank Canvas</option>
@@ -174,20 +141,21 @@ export default function CreatePostPage() {
             <div className="space-y-2">
               <Label>Content</Label>
 
-              {/* Previous inline dynamic ReactQuill wrapper kept for reference per request. */}
-              {/* <ReactQuill forwardedRef={quillRef} value={content} onChange={setContent} modules={modules}/> */}
-              <RichTextEditor
-                editorRef={quillRef}
-                onImageRequest={imageHandler}
-                onChange={setContent}
-                value={content}
+              <MarkdownEditor
+                name="content"
+                onUploadingChange={setUploading}
+                templates={POST_TEMPLATES}
+                onTemplateApplied={(template) => {
+                  // Match the category to the template; it can still be changed.
+                  if (categoryRef.current) categoryRef.current.value = template.category;
+                }}
               />
 
-              <input
-                type="hidden"
-                name="content"
-                value={content ? (content === "<p><br></p>" ? "" : content) : ""}
-              />
+              {formState.errors.content && (
+                <p className="text-red-500 text-sm">
+                  {formState.errors.content[0]}
+                </p>
+              )}
             </div>
 
             {/* BUTTON */}

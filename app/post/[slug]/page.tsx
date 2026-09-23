@@ -1,128 +1,155 @@
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, Home, MessageCircle } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
-import RenderContent from '@/components/RenderContent';
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
+
+import { CommentsSection } from "@/components/engagement/CommentsSection";
+import { LikeSection } from "@/components/engagement/LikeSection";
+import { ViewCount } from "@/components/engagement/ViewCount";
+import { ViewTracker } from "@/components/engagement/ViewTracker";
+import MarkdownContent from "@/components/MarkdownContent";
+import RenderContent from "@/components/RenderContent";
+import { SectionIcon } from "@/components/SectionIcon";
+import { renderMarkdown } from "@/lib/markdown";
 import { getPostBySlug } from "@/lib/posts";
+import { sectionForCategory, tagHref } from "@/lib/sections";
+import { formatDate, getPreview, readingTime } from "@/lib/utils";
 
-export default async function PostPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = await params;
+type PostPageProps = { params: Promise<{ slug: string }> };
 
-  // Previous direct Prisma query kept for reference per request.
-  // const post = await prisma.post.findUnique({
-  //   where: { slug: resolvedParams.slug },
-  //   include: {
-  //     tags: {
-  //       include: {
-  //         tag: true,
-  //       },
-  //     },
-  //   },
-  // });
+export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
+  const post = await getPostBySlug((await params).slug);
+  if (!post) return {};
 
-  const post = await getPostBySlug(resolvedParams.slug);
+  return {
+    title: post.title,
+    description: getPreview(post.content, 30),
+  };
+}
 
-  if (!post) return (
-    <div className="min-h-screen flex items-center justify-center text-zinc-500">
-      Post not found
-    </div>
-  );
+export default async function PostPage({ params }: PostPageProps) {
+  const post = await getPostBySlug((await params).slug);
+  if (!post) notFound();
 
-  // Read time calculation safely
-  const text = post.content?.replace(/<[^>]*>/g, "").trim() || "";
-  const words = text ? text.split(/\s+/).length : 0;
-  const readTime = Math.max(1, Math.ceil(words / 200));
+  const section = sectionForCategory(post.category);
 
   return (
-    <div className="min-h-screen relative pb-32 overflow-hidden">
-      {/* Dynamic Background Blur using Featured Image */}
-      {post.featuredImage && (
-        <div className="absolute top-0 inset-x-0 h-[60vh] -z-10 overflow-hidden opacity-20 pointer-events-none">
-          <Image
-            src={post.featuredImage}
-            alt="background blur"
-            fill
-            sizes="100vw"
-            className="object-cover blur-[120px] saturate-[2]"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-zinc-950/80 to-zinc-950" />
-        </div>
-      )}
+    <div data-pillar={section.key} className="mx-auto max-w-3xl px-6 py-12">
+      {/* BREADCRUMBS */}
+      <nav aria-label="Breadcrumb" className="mb-10 min-w-0">
+        <ol className="kicker flex flex-wrap items-center gap-x-2 gap-y-1 text-faint">
+          <li>
+            <Link href="/" className="flex items-center gap-1.5 transition-colors hover:text-brand">
+              <Home className="h-3 w-3" />
+              <span className="sr-only sm:not-sr-only">Home</span>
+            </Link>
+          </li>
+          <li className="flex items-center gap-2">
+            <span aria-hidden className="text-edge">/</span>
+            <Link href={section.href} className="transition-colors hover:text-brand">
+              {section.title}
+            </Link>
+          </li>
+          <li className="flex min-w-0 items-center gap-2">
+            <span aria-hidden className="text-edge">/</span>
+            <span aria-current="page" className="truncate text-brand" title={post.title}>
+              {post.title}
+            </span>
+          </li>
+        </ol>
+      </nav>
 
-      {/* TOP PROGRESS BAR (Optional placeholder for client logic) */}
-      <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-zinc-900/50">
-        <div className="h-full bg-blue-500 w-0 transition-all duration-300" id="scroll-progress" />
-      </div>
-
-      <main className="max-w-4xl mx-auto px-6 pt-12 md:pt-24 space-y-16">
-        {/* BACK BUTTON */}
-        <Link
-          href="/"
-          className="inline-flex items-center gap-3 text-zinc-400 hover:text-white transition-colors text-sm font-medium group"
-        >
-          <div className="p-2.5 rounded-full bg-zinc-900/80 border border-zinc-800 group-hover:border-chart-1 transition-colors backdrop-blur-xl">
-            <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-          </div>
-          Back to feed
-        </Link>
-
-        {/* HERO HEADER */}
-        <header className="space-y-8 text-center animate-in fade-in slide-in-from-bottom-8 duration-700">
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Badge className="bg-zinc-800/80 text-zinc-300 hover:bg-zinc-700 border border-zinc-700/50 px-4 py-1.5 uppercase tracking-widest text-xs backdrop-blur-md">
-              {post.category}
-            </Badge>
-            {post.tags?.map((t) => (
-              <Badge key={t.tag.id} className="bg-chart-1/20 text-chart-1 hover:bg-chart-1/30 border border-chart-1/30 px-3 py-1.5 uppercase tracking-widest text-[10px] backdrop-blur-md">
-                {t.tag.name}
-              </Badge>
-            ))}
+      <article>
+        <header className="mb-12">
+          <div className="mb-6 flex items-center gap-2.5">
+            <SectionIcon name={section.iconName} className="h-4 w-4 text-brand" />
+            <span className="kicker text-brand">{section.title}</span>
           </div>
 
-          <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tighter text-white leading-[1.1] mx-auto max-w-3xl">
+          <h1 className="display text-balance-pretty text-4xl leading-[1.1] text-ink sm:text-5xl">
             {post.title}
           </h1>
 
-          <div className="flex flex-wrap justify-center items-center gap-4 text-zinc-400 text-sm py-4">
-            <div className="flex items-center gap-2 bg-zinc-900/60 px-4 py-2 rounded-full border border-zinc-800/50 backdrop-blur-md">
-              <Calendar className="w-4 h-4 text-blue-400" />
-              {new Date(post.createdAt).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </div>
-            <div className="flex items-center gap-2 bg-zinc-900/60 px-4 py-2 rounded-full border border-zinc-800/50 backdrop-blur-md">
-              <Clock className="w-4 h-4 text-emerald-400" />
-              {readTime} min read
-            </div>
+          <div className="kicker mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-edge pt-5 text-faint">
+            <time dateTime={new Date(post.createdAt).toISOString()}>{formatDate(post.createdAt)}</time>
+            <span aria-hidden>&middot;</span>
+            <span>{readingTime(post.content)} min read</span>
+            <span aria-hidden>&middot;</span>
+            <Suspense fallback={<span className="inline-block h-3 w-12 animate-pulse rounded bg-edge-soft" />}>
+              <ViewCount postId={post.id} />
+            </Suspense>
+            {post.tags.length > 0 && (
+              <ul className="flex flex-wrap gap-x-2 sm:ml-auto">
+                {post.tags.map(({ tag }, i) => (
+                  <li key={tag.id} className="flex gap-2">
+                    {i > 0 && <span aria-hidden className="text-edge">/</span>}
+                    <Link
+                      href={tagHref(section.href, tag.name)}
+                      className="text-brand transition-colors hover:text-brand-deep hover:underline"
+                    >
+                      {tag.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </header>
 
-        {/* FEATURED IMAGE WITH GLOW & GLASS BORDER */}
         {post.featuredImage && (
-          <div className="relative group animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200 mx-auto max-w-5xl">
-            <div className="absolute -inset-1 blur-3xl opacity-30 group-hover:opacity-60 transition duration-1000 bg-gradient-to-r from-blue-500 via-purple-500 to-emerald-500 rounded-[2.5rem] -z-10" />
-            <div className="relative rounded-[2rem] overflow-hidden border border-white/10 shadow-2xl bg-zinc-950">
-              <Image
-                src={post.featuredImage}
-                alt={post.title}
-                width={1200}
-                height={630}
-                sizes="(max-width: 1024px) 100vw, 1200px"
-                preload
-                className="w-full aspect-[21/9] md:aspect-video object-cover transition-transform duration-700 group-hover:scale-[1.02]"
-              />
-            </div>
+          <div className="relative mb-12 aspect-video overflow-hidden rounded-2xl border border-edge">
+            <Image
+              src={post.featuredImage}
+              alt=""
+              fill
+              sizes="(max-width: 768px) 100vw, 720px"
+              preload
+              className="object-cover"
+            />
           </div>
         )}
 
-        {/* ARTICLE CONTENT */}
-        <article className="w-full min-w-0 relative max-w-3xl mx-auto bg-zinc-950/40 backdrop-blur-3xl border border-zinc-800/50 rounded-[2.5rem] p-6 md:p-12 lg:p-16 shadow-2xl overflow-hidden break-words">
+        {post.contentFormat === "MARKDOWN" ? (
+          <MarkdownContent html={await renderMarkdown(post.content)} />
+        ) : (
           <RenderContent content={post.content || ""} />
-        </article>
+        )}
+      </article>
 
-      </main>
+      <ViewTracker postId={post.id} />
+
+      {/* LIKES */}
+      <div className="mt-16 flex flex-wrap items-center gap-3 border-t border-edge pt-6">
+        <Suspense fallback={<div className="h-9 w-24 animate-pulse rounded-full bg-edge-soft" />}>
+          <LikeSection postId={post.id} />
+        </Suspense>
+        <a
+          href="#comments"
+          className="inline-flex h-9 items-center gap-2 rounded-full border border-edge px-4 text-sm text-subtle transition-colors hover:border-brand/50 hover:text-brand"
+        >
+          <MessageCircle className="h-4 w-4" aria-hidden />
+          Comments
+        </a>
+      </div>
+
+      {/* COMMENTS */}
+      <div className="mt-16">
+        <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-edge-soft/60" />}>
+          <CommentsSection postId={post.id} />
+        </Suspense>
+      </div>
+
+      <nav className="mt-20 border-t border-edge pt-8" aria-label="More posts">
+        <Link
+          href={section.href}
+          className="kicker inline-flex items-center gap-2 text-faint transition-colors hover:text-brand"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+          All {section.title} posts
+        </Link>
+      </nav>
     </div>
   );
 }

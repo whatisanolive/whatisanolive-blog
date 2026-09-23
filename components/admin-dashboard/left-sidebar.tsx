@@ -65,7 +65,7 @@ const DashboardSidebar = () => {
                 </Link>
 
 
-                <Link href="/dashbard">
+                <Link href="/admin/posts">
                     <Button variant={"ghost"} className="w-full justify-start">
                         <FileText className="h-5 w-5" />
                         Posts
@@ -73,7 +73,7 @@ const DashboardSidebar = () => {
                 </Link>
 
 
-                <Link href="/dashbard">
+                <Link href="/admin/comments">
                     <Button variant={"ghost"} className="w-full justify-start">
                         <MessageCircle className="h-5 w-5" />
                         Comments
@@ -81,7 +81,7 @@ const DashboardSidebar = () => {
                 </Link>
 
 
-                <Link href="/dashbard">
+                <Link href="/admin/analytics">
                     <Button variant={"ghost"} className="w-full justify-start">
                         <BarChart className="h-5 w-5" />
                         Analytics
@@ -89,7 +89,7 @@ const DashboardSidebar = () => {
                 </Link>
 
 
-                <Link href="/dashbard">
+                <Link href="/admin/settings">
                     <Button variant={"ghost"} className="w-full justify-start">
                         <Settings className="h-5 w-5" />
                         Settings

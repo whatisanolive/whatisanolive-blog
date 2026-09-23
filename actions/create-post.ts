@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getAdminUser } from "@/lib/require-admin";
 import {
   buildPostSlug,
   parsePostFormData,
@@ -49,25 +49,13 @@ export const createPost = async (
     };
   }
 
-  // ✅ Get user
-  const user = await currentUser();
-
-  if (!user) {
-    return {
-      errors: {
-        formErrors: ["Unauthorized"],
-      },
-    };
-  }
-
-  const dbUser = await prisma.user.findUnique({
-    where: { clerkUserId: user.id },
-  });
+  // ✅ Only admins can write posts
+  const dbUser = await getAdminUser();
 
   if (!dbUser) {
     return {
       errors: {
-        formErrors: ["User not found"],
+        formErrors: ["Unauthorized"],
       },
     };
   }
@@ -112,6 +100,7 @@ export const createPost = async (
           title: result.data.title,
           slug,
           content: result.data.content,
+          contentFormat: "MARKDOWN",
           category: result.data.category,
           featuredImage: result.data.featuredImage || null,
           authorId: dbUser.id,

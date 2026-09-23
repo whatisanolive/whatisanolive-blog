@@ -14,11 +14,13 @@ const RecentPosts = ({posts}: { posts: AdminRecentPost[] }) => {
         <CardHeader>
             <div className="flex items-center justify-between">
                 <CardTitle>Recent Posts</CardTitle>
-                <Button className='text-foreground/90' size="sm"
-                variant={"ghost"}>
-                    View All
-                    <ArrowRight/>
-                </Button>
+                <Link href="/admin/posts">
+                  <Button className='text-foreground/90' size="sm"
+                  variant={"ghost"}>
+                      View All
+                      <ArrowRight/>
+                  </Button>
+                </Link>
             </div>
         </CardHeader>
 
@@ -30,6 +32,7 @@ const RecentPosts = ({posts}: { posts: AdminRecentPost[] }) => {
                         <TableHead>Title</TableHead>
                         <TableHead>Staus</TableHead>
                         <TableHead>Category</TableHead>
+                        <TableHead>Views</TableHead>
                         <TableHead>Date</TableHead>
                         <TableHead>Actions</TableHead>
                     </TableRow>
@@ -49,6 +52,8 @@ const RecentPosts = ({posts}: { posts: AdminRecentPost[] }) => {
 </TableCell>
 
       <TableCell>{post.category}</TableCell>
+
+      <TableCell>{post.views.toLocaleString('en-US')}</TableCell>
 
       <TableCell>
         {new Date(post.createdAt).toLocaleDateString()}

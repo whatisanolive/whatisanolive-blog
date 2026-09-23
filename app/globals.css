@@ -1,44 +1,78 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@plugin "@tailwindcss/typography";
 
-@custom-variant dark (&:is(.dark *));
+/* The theme is an explicit attribute on <html>, not a media query, so the
+   toggle can override the OS preference. */
+@custom-variant dark ([data-theme="dark"] &);
+
+/* -------------------------------------------------------------------------- */
+/*                              Semantic tokens                               */
+/* -------------------------------------------------------------------------- */
+/*
+  Blog components are written against `bg-ground`, `text-ink`, `border-edge`,
+  `text-brand` and so on. Each `[data-pillar]` block below redefines the raw
+  variables, so a section retheme is a single attribute — no conditional class
+  strings in the components.
+
+  The shadcn tokens (`--background`, `--card`, `--muted`, …) are derived from
+  the same raw variables further down, so the admin UI follows the theme too.
+  That is why the blog's own "muted text" and "accent" are called `subtle` and
+  `brand` here: shadcn already uses `muted` and `accent` for backgrounds.
+*/
 
 @theme inline {
+  --color-ground: var(--ground);
+  --color-ground-alt: var(--ground-alt);
+  --color-surface: var(--surface);
+  --color-edge: var(--edge);
+  --color-edge-soft: var(--edge-soft);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-subtle: var(--subtle);
+  --color-faint: var(--faint);
+  --color-brand: var(--brand);
+  --color-brand-deep: var(--brand-deep);
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display: var(--font-fraunces), ui-serif, Iowan Old Style, Georgia, serif;
+  --font-heading: var(--font-display);
+
+  /* shadcn/ui */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-heading);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,140 +82,582 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* :light {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.52 0.105 223.128);
-  --primary-foreground: oklch(0.984 0.019 200.873);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.855 0.138 181.071);
-  --chart-2: oklch(0.704 0.14 182.503);
-  --chart-3: oklch(0.6 0.118 184.704);
-  --chart-4: oklch(0.511 0.096 186.391);
-  --chart-5: oklch(0.437 0.078 188.216);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.609 0.126 221.723);
-  --sidebar-primary-foreground: oklch(0.984 0.019 200.873);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
-} */
+/*
+  Two themes across four grounds. Light is the default; dark is opt-in via the
+  toggle. Each section (Tech, DSA, Blank Canvas) shifts the hue, not the
+  brightness.
+*/
 
+/* Section hues, for the places all three appear at once: the nav, the homepage
+   cards. Deep on light, pastel on dark. */
 :root {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.45 0.085 224.283);
-  --primary-foreground: oklch(0.984 0.019 200.873);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.855 0.138 181.071);
-  --chart-2: oklch(79.585% 0.16756 337.116);
-  --chart-3: oklch(0.6 0.118 184.704);
-  --chart-4: oklch(0.511 0.096 186.391);
-  --chart-5: oklch(0.437 0.078 188.216);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.715 0.143 215.221);
-  --sidebar-primary-foreground: oklch(0.302 0.056 229.695);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
-  --pop: oklch(81.779% 0.08911 225.14);
+  --hue-tech: #2c6baf;
+  --hue-dsa: #2a7355;
+  --hue-blank-canvas: #6244a8;
 }
+
+[data-theme="dark"] {
+  --hue-tech: #9ec5ff;
+  --hue-dsa: #9fdcbb;
+  --hue-blank-canvas: #c6b0f5;
+}
+
+/* -------------------------------- Light ---------------------------------- */
+
+/* Home — light grey paper. */
+:root {
+  color-scheme: light;
+  --ground: #ebebed;
+  --ground-alt: #f4f4f5;
+  --surface: #ffffff;
+  --edge: #d7d7db;
+  --edge-soft: #e5e5e8;
+  --ink: #17171a;
+  --body: #44444b;
+  --subtle: #57575f;
+  --faint: #6a6a72;
+  --brand: #3b4552;
+  --brand-deep: #2e353e;
+  --danger: #b3405e;
+  --grid-line: rgb(23 23 26 / 0.055);
+}
+
+/* Tech — blue. */
+:root:has([data-pillar="tech"]),
+[data-pillar="tech"] {
+  color-scheme: light;
+  --ground: #e7eef7;
+  --ground-alt: #eef3fa;
+  --surface: #ffffff;
+  --edge: #cbd9ea;
+  --edge-soft: #dde7f3;
+  --ink: #16202e;
+  --body: #3c4759;
+  --subtle: #4d5a6c;
+  --faint: #616c7e;
+  --brand: #2c6baf;
+  --brand-deep: #245182;
+  --grid-line: rgb(23 23 26 / 0.055);
+}
+
+/* DSA — green. */
+:root:has([data-pillar="dsa"]),
+[data-pillar="dsa"] {
+  color-scheme: light;
+  --ground: #e4efe8;
+  --ground-alt: #edf5f0;
+  --surface: #ffffff;
+  --edge: #c6dace;
+  --edge-soft: #d9e9e0;
+  --ink: #13231a;
+  --body: #394940;
+  --subtle: #4b5c52;
+  --faint: #5f6f66;
+  --brand: #2a7355;
+  --brand-deep: #225740;
+  --grid-line: rgb(23 23 26 / 0.055);
+}
+
+/* Blank Canvas — violet. */
+:root:has([data-pillar="blank-canvas"]),
+[data-pillar="blank-canvas"] {
+  color-scheme: light;
+  --ground: #ede9f7;
+  --ground-alt: #f4f1fb;
+  --surface: #ffffff;
+  --edge: #d7cfeb;
+  --edge-soft: #e5dff3;
+  --ink: #1e1830;
+  --body: #49415d;
+  --subtle: #5c5371;
+  --faint: #6e6680;
+  --brand: #6244a8;
+  --brand-deep: #4a357e;
+  --grid-line: rgb(23 23 26 / 0.055);
+}
+
+/* --------------------------------- Dark ---------------------------------- */
+/*
+  `[data-theme="dark"]` sits on <html>, matching `:root` for specificity, so
+  these blocks win on source order. The descendant forms out-specify the bare
+  `[data-pillar]` selectors above for the same reason.
+*/
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #1a1a1e;
+  --ground-alt: #212126;
+  --surface: #26262c;
+  --edge: #35353d;
+  --edge-soft: #2c2c33;
+  --ink: #f4f4f5;
+  --body: #bdbdc2;
+  --subtle: #a3a3ab;
+  --faint: #8c8c93;
+  --brand: #a9c8f0;
+  --brand-deep: #c3d8f4;
+  --danger: #f08ca0;
+  --grid-line: rgb(255 255 255 / 0.05);
+}
+
+[data-theme="dark"]:has([data-pillar="tech"]),
+[data-theme="dark"] [data-pillar="tech"] {
+  color-scheme: dark;
+  --ground: #161c26;
+  --ground-alt: #1c2431;
+  --surface: #202a38;
+  --edge: #2f3c4e;
+  --edge-soft: #232e3c;
+  --ink: #e8eef8;
+  --body: #b7c2ce;
+  --subtle: #99a9ba;
+  --faint: #8391a2;
+  --brand: #8fbdf0;
+  --brand-deep: #b1d1f4;
+  --grid-line: rgb(255 255 255 / 0.05);
+}
+
+[data-theme="dark"]:has([data-pillar="dsa"]),
+[data-theme="dark"] [data-pillar="dsa"] {
+  color-scheme: dark;
+  --ground: #141d18;
+  --ground-alt: #1a251f;
+  --surface: #1e2b24;
+  --edge: #2c3f34;
+  --edge-soft: #212f27;
+  --ink: #e6f0e9;
+  --body: #b5c3b9;
+  --subtle: #97aa9e;
+  --faint: #819389;
+  --brand: #85cfa6;
+  --brand-deep: #aaddc1;
+  --grid-line: rgb(255 255 255 / 0.05);
+}
+
+[data-theme="dark"]:has([data-pillar="blank-canvas"]),
+[data-theme="dark"] [data-pillar="blank-canvas"] {
+  color-scheme: dark;
+  --ground: #1a1626;
+  --ground-alt: #211c30;
+  --surface: #272038;
+  --edge: #392f4f;
+  --edge-soft: #2a233b;
+  --ink: #ece7f6;
+  --body: #bdb7cc;
+  --subtle: #a69dba;
+  --faint: #8f86a1;
+  --brand: #b89ded;
+  --brand-deep: #cdbaf2;
+  --grid-line: rgb(255 255 255 / 0.05);
+}
+
+/* ------------------------- shadcn/ui token bridge ------------------------- */
+/*
+  Declared on every element that redefines the raw palette, so `var()` resolves
+  against that element's own values rather than inheriting a stale result.
+*/
+
+:root,
+[data-pillar] {
+  --radius: 0.75rem;
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: var(--surface);
+  --secondary: var(--ground-alt);
+  --secondary-foreground: var(--ink);
+  --muted: var(--ground-alt);
+  --muted-foreground: var(--subtle);
+  --accent: var(--ground-alt);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--edge);
+  --input: var(--edge);
+  --ring: var(--brand);
+
+  --chart-1: var(--hue-tech);
+  --chart-2: var(--hue-dsa);
+  --chart-3: var(--hue-blank-canvas);
+  --chart-4: var(--brand);
+  --chart-5: var(--faint);
+
+  --sidebar: var(--ground-alt);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--surface);
+  --sidebar-accent: var(--surface);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--edge);
+  --sidebar-ring: var(--brand);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                    Base                                    */
+/* -------------------------------------------------------------------------- */
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
 
-  body {
-    @apply bg-background text-foreground;
-  }
-
   html {
-    @apply font-sans;
+    scroll-behavior: smooth;
+    scroll-padding-top: 6rem;
+    font-family: var(--font-sans);
+  }
+
+  body {
+    background-color: var(--ground);
+    color: var(--body);
+    text-rendering: optimizeLegibility;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--brand) 28%, transparent);
+    color: var(--ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--edge) transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }
 
-.grid-bg {
-  position: relative;
-  background-color: #0a0a0a;
+/* -------------------------------------------------------------------------- */
+/*                                 Utilities                                  */
+/* -------------------------------------------------------------------------- */
+
+/** Ruled grid that fades out downwards, used behind page headers. */
+@utility grid-backdrop {
   background-image:
-    linear-gradient(#1f1f1f 1px, transparent 1px),
-    linear-gradient(to right, #1f1f1f 1px, transparent 1px);
-  background-size: 40px 40px;
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 75% 65% at 50% 0%, #000 35%, transparent 100%);
 }
 
-/* .grid-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-
-  background: radial-gradient(
-    circle at var(--x, 50%) var(--y, 50%),
-    rgba(255,255,255,0.08),
-    transparent 40%
-  );
-
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-} */
-
-/* .grid-bg:hover::before {
-  opacity: 1;
-} */
-
-.prose pre {
-  background: #8b8b8b4d;
-  color: #c9d1d9;
-  padding: 16px;
-  border-radius: 8px;
-  overflow-x: auto;
-  font-family: 'Fira Code', monospace;
-  font-size: small;
-  margin: 1rem;
+@utility text-balance-pretty {
+  text-wrap: pretty;
 }
 
-pre {
-  overflow-x: auto;
-  max-width: 100%;
-  padding: 1rem;
+/** Serif display type: tight, slightly negative tracking, optical weight. */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.018em;
+  line-height: 1.08;
+}
+
+/** Small uppercase mono label — the editorial "kicker". */
+@utility kicker {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                             Article typography                             */
+/* -------------------------------------------------------------------------- */
+/*
+  Deliberately unlayered. The typography plugin emits its rules into Tailwind's
+  `utilities` layer, and layer order beats specificity — unlayered CSS outranks
+  every layer, so these overrides actually apply.
+*/
+
+.prose-blog {
+  --tw-prose-body: var(--body);
+  --tw-prose-headings: var(--ink);
+  --tw-prose-lead: var(--subtle);
+  --tw-prose-links: var(--brand-deep);
+  --tw-prose-bold: var(--ink);
+  --tw-prose-counters: var(--subtle);
+  --tw-prose-bullets: var(--edge);
+  --tw-prose-hr: var(--edge);
+  --tw-prose-quotes: var(--ink);
+  --tw-prose-quote-borders: var(--brand);
+  --tw-prose-captions: var(--subtle);
+  --tw-prose-code: var(--ink);
+  --tw-prose-pre-bg: transparent;
+  --tw-prose-pre-code: inherit;
+  --tw-prose-th-borders: var(--edge);
+  --tw-prose-td-borders: var(--edge-soft);
+
+  max-width: none;
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  overflow-wrap: break-word;
+}
+
+/* Headings are the serif; body stays sans for long-form legibility. */
+.prose-blog :is(h1, h2, h3, h4) {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  scroll-margin-top: 6rem;
+}
+
+.prose-blog h2 {
+  font-size: 1.75rem;
+  line-height: 1.2;
+  margin-top: 3rem;
+  padding-top: 1.75rem;
+  border-top: 1px solid var(--edge-soft);
+}
+
+.prose-blog :not(pre) > code {
+  background-color: color-mix(in oklab, var(--brand) 9%, transparent);
+  border: 1px solid color-mix(in oklab, var(--brand) 18%, transparent);
+  border-radius: 0.375rem;
+  padding: 0.15em 0.4em;
+  font-size: 0.86em;
+  font-weight: 450;
+  color: var(--brand-deep);
+}
+
+.prose-blog :not(pre) > code::before,
+.prose-blog :not(pre) > code::after {
+  content: none;
+}
+
+/* Inline code highlighted by rehype-pretty-code carries its own token colours. */
+.prose-blog [data-rehype-pretty-code-figure] :not(pre) > code,
+.prose-blog span[data-rehype-pretty-code-figure] > code {
+  font-family: var(--font-mono);
+}
+
+/* A lead paragraph, set larger — the editorial opener. */
+.prose-blog > p:first-child {
+  font-size: 1.1875rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.prose-blog blockquote {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.45;
+  border-left-width: 2px;
+}
+
+.prose-blog blockquote p::before,
+.prose-blog blockquote p::after {
+  content: none;
+}
+
+.prose-blog img {
+  border-radius: 1rem;
+  border: 1px solid var(--edge-soft);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          Code blocks (Shiki output)                        */
+/* -------------------------------------------------------------------------- */
+
+figure[data-rehype-pretty-code-figure] {
+  position: relative;
+  margin: 1.75rem 0;
+  overflow: hidden;
+  border: 1px solid var(--edge);
   border-radius: 0.75rem;
-  overflow-x: auto;
-  white-space: pre;
+  background-color: var(--surface);
 }
 
+[data-rehype-pretty-code-figure] pre {
+  /* Reset the typography plugin's own pre styling: it adds vertical margins
+     and a radius that would show as gaps inside the card. Headroom at the top
+     keeps line one clear of the language badge and copy button. */
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 2.75rem 0 1rem;
+  overflow-x: auto;
+  line-height: 1.65;
+  font-size: 0.8125rem;
+  tab-size: 2;
+}
 
-code {
-  word-break: break-word;
+[data-rehype-pretty-code-figure] pre > code {
+  display: grid;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+}
+
+/* Shiki emits both themes as custom properties on every token. Pick one. */
+[data-rehype-pretty-code-figure] span {
+  color: var(--shiki-light);
+}
+
+[data-theme="dark"] [data-rehype-pretty-code-figure] span {
+  color: var(--shiki-dark);
+}
+
+[data-rehype-pretty-code-figure] [data-line] {
+  display: block;
+  padding-inline: 1.15rem 1.5rem;
+  border-left: 2px solid transparent;
+}
+
+/* Language badge + copy button, injected by components/CodeBlockControls. */
+.code-controls {
+  position: absolute;
+  top: 0.625rem;
+  right: 0.75rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.code-controls__label,
+.code-controls__copy {
+  border: 1px solid var(--edge-soft);
+  background-color: color-mix(in oklab, var(--ground-alt) 90%, transparent);
+  border-radius: 0.375rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1;
+  color: var(--subtle);
+}
+
+.code-controls__label {
+  padding: 0.35rem 0.5rem;
+}
+
+.code-controls__copy {
+  display: flex;
+  height: 1.75rem;
+  width: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+figure:hover .code-controls__copy,
+.code-controls__copy:focus-visible,
+.code-controls__copy[data-copied] {
+  opacity: 1;
+}
+
+.code-controls__copy:hover,
+.code-controls__copy[data-copied] {
+  color: var(--brand);
+  border-color: color-mix(in oklab, var(--brand) 50%, transparent);
+}
+
+/* Code blocks from posts written with the old (Quill) editor. */
+.prose-blog pre.ql-syntax,
+.prose-blog pre.hljs {
+  border: 1px solid var(--edge);
+  border-radius: 0.75rem;
+  font-size: 0.8125rem;
+  overflow-x: auto;
+}
+
+/* -------------------------------------------------------------------------- */
+/*                            Consistency heatmap                             */
+/* -------------------------------------------------------------------------- */
+/*
+  The calendar is our own SVG (`components/ActivityHeatmap.tsx`), so the squares
+  carry only `data-level` and take every colour from here — they follow the
+  theme toggle with no client JavaScript. Light-mode steps are deliberately
+  dark: a pastel green on a pale ground reads as empty.
+*/
+
+.activity-calendar rect[data-level="0"] {
+  fill: #d8d8de;
+}
+.activity-calendar rect[data-level="1"] {
+  fill: #79bd9a;
+}
+.activity-calendar rect[data-level="2"] {
+  fill: #489d75;
+}
+.activity-calendar rect[data-level="3"] {
+  fill: #2a7355;
+}
+.activity-calendar rect[data-level="4"] {
+  fill: #174a35;
+}
+
+.activity-calendar rect {
+  stroke: rgb(23 23 26 / 0.09);
+}
+
+.activity-calendar__label {
+  fill: var(--faint);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+[data-theme="dark"] .activity-calendar rect[data-level="0"] {
+  fill: #26262c;
+}
+[data-theme="dark"] .activity-calendar rect[data-level="1"] {
+  fill: #2f4c3c;
+}
+[data-theme="dark"] .activity-calendar rect[data-level="2"] {
+  fill: #427056;
+}
+[data-theme="dark"] .activity-calendar rect[data-level="3"] {
+  fill: #5f9d7c;
+}
+[data-theme="dark"] .activity-calendar rect[data-level="4"] {
+  fill: #93d3ae;
+}
+
+[data-theme="dark"] .activity-calendar rect {
+  stroke: rgb(255 255 255 / 0.05);
+}
+
+/* -------------------------------------------------------------------------- */
+/*                          Analytics charts (admin)                          */
+/* -------------------------------------------------------------------------- */
+/*
+  Categorical series colours, validated (dataviz validate_palette.js) against
+  the card surface in each theme: light #ffffff, dark #26262c. Slot 1 = blue,
+  slot 2 = orange. Always assign in this order; never reuse the section hues
+  here (those mean "Tech / DSA / Blank Canvas", not "series 1 / 2").
+*/
+:root {
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+}
+
+[data-theme="dark"] {
+  --series-1: #3987e5;
+  --series-2: #d95926;
 }

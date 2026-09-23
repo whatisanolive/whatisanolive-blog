@@ -26,6 +26,11 @@ enum PostStatus {
   PUBLISHED
 }
 
+enum ContentFormat {
+  HTML
+  MARKDOWN
+}
+
 ///////////////////////
 // MODELS
 ///////////////////////
@@ -50,6 +55,7 @@ model Post {
   title         String
   slug          String     @unique
   content       String
+  contentFormat ContentFormat @default(MARKDOWN)
 
   status        PostStatus @default(DRAFT)
   publishedAt   DateTime?
@@ -65,6 +71,7 @@ model Post {
   tags          PostTag[]
   comments      Comment[]
   likes         Like[]
+  dailyViews    PostViewDaily[]
 
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -99,7 +106,7 @@ model Comment {
   author    User     @relation(fields: [authorId], references: [id])
   authorId  String
 
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    String
 
   createdAt DateTime @default(now())
@@ -111,11 +118,52 @@ model Like {
   user   User @relation(fields: [userId], references: [id])
   userId String
 
-  post   Post @relation(fields: [postId], references: [id])
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId String
 
   createdAt DateTime @default(now())
 
   @@id([userId, postId])
   @@index([postId])
+}
+
+/// Views per post per calendar day (in site.timeZone), for analytics charts.
+/// Post.views stays the all-time total; this adds the history behind it.
+model PostViewDaily {
+  post   Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  day    DateTime @db.Date
+  count  Int      @default(0)
+
+  @@id([postId, day])
+  @@index([day])
+}
+
+/// Single-row site configuration, edited at /admin/settings.
+/// Empty/missing values fall back to the defaults in lib/site.ts.
+model SiteSettings {
+  id            String   @id @default("site")
+
+  siteName      String
+  tagline       String
+  description   String
+  email         String
+  github        String
+  footerBlurb   String
+
+  heroLead      String
+  heroHighlight String
+  heroIntro     String
+
+  updatedAt     DateTime @updatedAt
+}
+
+/// Editable copy for each section (Tech / DSA / Blank Canvas).
+/// Titles stay in code: they appear in the nav, breadcrumbs and URLs.
+model SectionSettings {
+  category    Category @id
+  tagline     String
+  description String
+
+  updatedAt   DateTime @updatedAt
 }

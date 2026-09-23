@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { getAdminUser } from "@/lib/require-admin";
 import {
   buildPostSlug,
   parsePostFormData,
@@ -50,10 +50,10 @@ export const editPost = async (
     };
   }
 
-  // ✅ Get user
-  const user = await currentUser();
+  // ✅ Only admins can write posts
+  const dbUser = await getAdminUser();
 
-  if (!user) {
+  if (!dbUser) {
     return {
       errors: {
         formErrors: ["Unauthorized"],
@@ -61,23 +61,8 @@ export const editPost = async (
     };
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { clerkUserId: user.id },
-  });
-
-  if (!dbUser) {
-    return {
-      errors: {
-        formErrors: ["User not found"],
-      },
-    };
-  }
-
-  const existingPost = await prisma.post.findFirst({
-    where:
-      dbUser.role === "ADMIN"
-        ? { id: postId }
-        : { id: postId, authorId: dbUser.id },
+  const existingPost = await prisma.post.findUnique({
+    where: { id: postId },
     select: {
       id: true,
       featuredImage: true,
@@ -138,6 +123,7 @@ export const editPost = async (
           title: result.data.title,
           slug,
           content: result.data.content,
+          contentFormat: "MARKDOWN",
           category: result.data.category,
           featuredImage:
             result.data.featuredImage || existingPost.featuredImage || null,

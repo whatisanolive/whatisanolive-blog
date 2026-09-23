@@ -8,15 +8,12 @@ import {
 } from "../ui/card";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useState, useActionState, useRef, useCallback } from "react";
+import { useState, useActionState, useCallback } from "react";
 import { Button } from "../ui/button";
 import { editPost } from "@/actions/edit-post";
 import Image from "next/image";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
-import {
-  RichTextEditor,
-  type ReactQuillInstance,
-} from "@/components/posts/rich-text-editor";
+import { MarkdownEditor } from "@/components/posts/markdown-editor";
 import type { EditablePost } from "@/lib/posts";
 
 // Previous Prisma PostWithTags helper kept for reference per request.
@@ -30,12 +27,14 @@ import type { EditablePost } from "@/lib/posts";
 //   };
 // }>;
 
-const EditPostPage = ({ post }: { post: EditablePost }) => {
-  // Previous ref kept for reference per request.
-  // const quillRef = useRef<any>(null);
-  const quillRef = useRef<ReactQuillInstance | null>(null);
+type EditPostPageProps = {
+  post: EditablePost;
+  // Markdown source for the editor (converted from HTML for posts made with the old editor).
+  initialContent: string;
+  convertedFromHtml: boolean;
+};
 
-  const [content, setContent] = useState(post.content || "");
+const EditPostPage = ({ post, initialContent, convertedFromHtml }: EditPostPageProps) => {
   const [imageUrl, setImageUrl] = useState(post.featuredImage || "");
   const [uploading, setUploading] = useState(false);
 
@@ -70,33 +69,6 @@ const EditPostPage = ({ post }: { post: EditablePost }) => {
     [],
   );
 
-  const imageHandler = useCallback(() => {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    input.setAttribute("accept", "image/*");
-    input.click();
-
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (file) {
-        setUploading(true);
-        try {
-          const url = await uploadImage(file);
-          const quill = quillRef.current?.getEditor();
-          if (quill) {
-            const range = quill.getSelection(true) || { index: quill.getLength() };
-            quill.insertEmbed(range.index, "image", url);
-            quill.setSelection(range.index + 1);
-          }
-        } catch (err) {
-          console.error(err);
-        } finally {
-          setUploading(false);
-        }
-      }
-    };
-  }, [uploadImage]);
-
   // 🔥 File handler
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -115,7 +87,7 @@ const EditPostPage = ({ post }: { post: EditablePost }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-7">
+    <div className="max-w-6xl mx-auto p-7">
       <Card>
         <CardHeader>
           <CardTitle>Edit Post</CardTitle>
@@ -195,20 +167,24 @@ const EditPostPage = ({ post }: { post: EditablePost }) => {
             <div className="space-y-2">
               <Label>Content</Label>
 
-              {/* Previous inline dynamic ReactQuill wrapper kept for reference per request. */}
-              {/* <ReactQuill forwardedRef={quillRef} value={content} onChange={setContent} modules={modules} /> */}
-              <RichTextEditor
-                editorRef={quillRef}
-                onImageRequest={imageHandler}
-                onChange={setContent}
-                value={content}
+              {convertedFromHtml && (
+                <p className="text-sm text-amber-500">
+                  This post was written with the old editor and has been converted to
+                  Markdown. Check the preview (especially code block languages) before saving.
+                </p>
+              )}
+
+              <MarkdownEditor
+                name="content"
+                defaultValue={initialContent}
+                onUploadingChange={setUploading}
               />
 
-              <input
-                type="hidden"
-                name="content"
-                value={content ? (content === "<p><br></p>" ? "" : content) : ""}
-              />
+              {formState.errors.content && (
+                <p className="text-red-500 text-sm">
+                  {formState.errors.content[0]}
+                </p>
+              )}
             </div>
 
             {/* BUTTON */}

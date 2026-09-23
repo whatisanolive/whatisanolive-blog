@@ -2,8 +2,13 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidateBlogData } from "@/lib/post-actions";
+import { getAdminUser } from "@/lib/require-admin";
 
 export async function deletePost(formData: FormData) {
+  if (!(await getAdminUser())) {
+    throw new Error("Unauthorized");
+  }
+
   const id = formData.get("id") as string;
 
   // Previous delete flow kept for reference per request.

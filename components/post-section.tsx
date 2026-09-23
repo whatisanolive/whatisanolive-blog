@@ -13,23 +13,7 @@ import { Category } from "@prisma/client"
 import { getPreview } from "@/lib/utils"
 import type { PublicPostCard } from "@/lib/posts";
 
-// Previous local Post interface kept for reference per request.
-// interface Post {
-//   id: string
-//   title: string
-//   description?: string | null
-//   createdAt: string
-//   category: Category
-//   slug: string
-//   featuredImage?: string | null
-//   content?: string
-//   tags?: {
-//     tag: {
-//       id: string
-//       name: string
-//     }
-//   }[]
-// }
+
 
 interface PostSectionProps {
   title: string
@@ -89,13 +73,13 @@ export function PostSection({ title, posts, hideExploreLink }: PostSectionProps)
           )}
         </div>
 
-        {/* EMPTY STATE ✅ */}
+
         {posts.length === 0 ? (
           <p className="text-zinc-500 text-sm">No posts yet.</p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {posts.map((post) => {
-              // ✅ safer read time
+
               const text =
                 post.content?.replace(/<[^>]*>/g, "").trim() || ""
               const words = text ? text.split(/\s+/).length : 0
@@ -108,7 +92,7 @@ export function PostSection({ title, posts, hideExploreLink }: PostSectionProps)
                   className="group/card"
                 >
 
-                  <Card className="h-full bg-zinc-950/50 border-chart-2/50 !rounded-[24px] border-3 backdrop-blur-md transition-all duration-300 group-hover/card:border-zinc-700 group-hover/card:-translate-y-1 overflow-hidden border">
+                  <Card className="h-full bg-chart-1/20 border-chart-2/50 !rounded-[24px] border-4 backdrop-blur-md transition-all duration-300 group-hover/card:border-zinc-700 group-hover/card:-translate-y-1 overflow-hidden border">
 
                     {post.featuredImage && (
 
@@ -133,12 +117,12 @@ export function PostSection({ title, posts, hideExploreLink }: PostSectionProps)
 
                           </Badge>
                           {post.tags?.map((t) => (
-                            <span key={t.tag.id} className="text-[10px] uppercase font-bold bg-zinc-800/70 text-zinc-300 border-none p-1 border">
+                            <span key={t.tag.id} className="text-[10px] uppercase font-bold bg-zinc-800/70 text-zinc-300 border-none p-1 border rounded-md">
                               {t.tag.name}
                             </span>
                           ))}
                         </div>
-                        <div className="flex items-center text-zinc-500 text-[10px] gap-1">
+                        <div className="flex items-center text-zinc-200 text-[10px] gap-1">
                           <Calendar className="w-3 h-3" />
                           {new Date(post.createdAt).toLocaleDateString(
                             "en-US",
@@ -153,12 +137,12 @@ export function PostSection({ title, posts, hideExploreLink }: PostSectionProps)
                     </CardHeader>
 
                     <CardContent className="p-4 pt-0">
-                      <p className="text-xs leading-relaxed text-zinc-400 line-clamp-2">
+                      <p className="text-s leading-relaxed text-white/90 line-clamp-2">
                         {getPreview(post.content)}
                       </p>
                     </CardContent>
 
-                    <CardFooter className="p-4 pt-0 flex items-center text-[10px] text-zinc-500">
+                    <CardFooter className="p-4 pt-0 flex items-center text-[10px] text-zinc-200">
                       <div className="flex items-center gap-1.5">
                         <Clock className="w-3 h-3" />
                         {readTime} min read

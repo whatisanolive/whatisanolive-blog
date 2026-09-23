@@ -1,0 +1,724 @@
+================================================================================
+  whatisanolive (blog_2) — PROJECT GUIDE
+  Last updated: 2026-09-19
+================================================================================
+
+Everything you might need to remember later: how to run it, how posts work,
+how the design/theme system works, where things live, and what to watch out
+for. Paths are relative to the my-app/ folder.
+
+
+--------------------------------------------------------------------------------
+ CONTENTS
+--------------------------------------------------------------------------------
+  1.  Things to do right now
+  2.  Everyday commands
+  3.  Tech stack
+  4.  Environment variables (.env)
+  5.  Writing posts (admin dashboard + Markdown)
+  6.  How a post gets rendered
+  7.  Old posts (HTML from the Quill editor)
+  8.  Admin access & security
+  9.  Design system: colours, sections, dark mode
+  10. Pages & what they show
+  11. Tags
+  12. Consistency heatmap
+  12b. Views, likes & comments
+  12c. Analytics dashboard
+  12d. Settings
+  13. Caching (why changes sometimes don't show up)
+  14. Database & Prisma migrations
+  15. File map
+  16. How-to recipes
+  17. Next.js 16 gotchas
+  18. Known issues / loose ends
+
+
+================================================================================
+ 1. THINGS TO DO RIGHT NOW
+================================================================================
+
+  [x] Apply the database migration that adds Post.contentFormat. Done on
+      2026-09-19 with `npx prisma migrate deploy`. If you ever see "The
+      column `Post.<something>` does not exist in the current database", a
+      migration hasn't been applied: run `npx prisma migrate status` to see
+      which, then `npx prisma migrate deploy`.
+
+  [ ] Fix .env: part of the Cloudinary credentials sits on its own line with
+      no KEY= in front, so the CLOUDINARY_URL value looks split across two
+      lines. Put it back on one line. (The code doesn't currently read
+      CLOUDINARY_URL; see section 4.)
+
+  [ ] Pick one package manager. Both package-lock.json (npm) and
+      pnpm-lock.yaml exist. Packages were last installed with npm, so the
+      pnpm lockfile is out of date. Delete the one you don't use.
+
+
+================================================================================
+ 2. EVERYDAY COMMANDS
+================================================================================
+
+  npm run dev              Start the dev server (http://localhost:3000)
+  npm run build            Production build (also catches Next 16 errors
+                           that dev mode lets slide; run before deploying)
+  npm run start            Serve the production build
+  npm run lint             ESLint
+  npx tsc --noEmit         Type-check (the build skips type checking because
+                           next.config.ts has typescript.ignoreBuildErrors)
+
+  npx prisma migrate dev --name <what_changed>
+                           After editing prisma/schema.prisma: creates a new
+                           migration and applies it to your dev database
+  npx prisma migrate deploy
+                           Apply migrations that already exist (use in prod)
+  npx prisma generate      Regenerate the Prisma client (after schema edits)
+  npx prisma studio        Browse/edit the database in a web UI
+
+
+================================================================================
+ 3. TECH STACK
+================================================================================
+
+  - Next.js 16.2 (App Router, Turbopack, cacheComponents ON), React 19
+  - Prisma 6 + PostgreSQL
+  - Clerk for auth (sign-in, user button)
+  - Cloudinary for image uploads (featured images + images inside posts)
+  - Tailwind CSS v4 + @tailwindcss/typography, shadcn/ui components
+  - Markdown pipeline: unified + remark-parse + remark-gfm + remark-rehype
+    + rehype-sanitize + rehype-pretty-code (Shiki) + rehype-stringify
+  - turndown (converts old HTML posts to Markdown when you edit them)
+  - Fonts via next/font: Fraunces (headings), Geist (body), Geist Mono
+
+
+================================================================================
+ 4. ENVIRONMENT VARIABLES (.env)
+================================================================================
+
+  DATABASE_URL                        Postgres connection string
+  NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY   Clerk (public)
+  CLERK_SECRET_KEY                    Clerk (secret)
+  CLOUDINARY_URL                      Not used by the code right now
+
+  Image uploads don't use a secret: lib/cloudinary.ts posts directly to
+  Cloudinary with the UNSIGNED upload preset "blog_upload" on cloud
+  "deoj5kwfb". If uploads start failing, check that the preset still exists
+  and is set to "Unsigned" in the Cloudinary dashboard.
+
+  .env is gitignored. Never commit it.
+
+
+================================================================================
+ 5. WRITING POSTS (ADMIN DASHBOARD + MARKDOWN)
+================================================================================
+
+  Where:  /admin                      dashboard (stats, recent posts)
+          /admin/posts                manage posts (see below)
+          /admin/posts/create         new post
+          /admin/posts/<id>/edit      edit a post
+          /admin/comments             moderate comments (section 12b)
+          /admin/analytics            charts (section 12c)
+
+  /admin/posts shows, in order: a totals line, the 5 latest posts, any
+  drafts, then one card per section (6 newest each, with "View all N" ->
+  ?category=TECH for the full list), then every tag with its post count.
+  Each row has Publish (drafts only), Edit, View on site, and Delete.
+  Delete asks first and also removes that post's comments and likes.
+
+  Flow:   Create -> saved as DRAFT -> click "Publish" on the dashboard.
+          Only PUBLISHED posts appear on the public site, in counts and in
+          the heatmap. Publishing sets publishedAt.
+
+  The editor (components/posts/markdown-editor.tsx):
+    - Write | Split | Preview modes. Split is side by side on wide screens.
+    - The preview is rendered ON THE SERVER by the same code as the real
+      post page, so it's exactly what readers will see (~300ms delay).
+    - Toolbar: heading, bold, link, code block, upload image.
+      "Upload image" sends the file to Cloudinary and inserts ![alt](url).
+    - Tab inserts two spaces (handy in code blocks).
+    - TEMPLATES (new posts only): while the post is empty, the editor
+      offers DSA problem / Tech deep-dive / Essay / Book notes. Picking one
+      fills in a structure and sets the Category to match. The toolbar's
+      template button (last icon) reopens the picker later; it asks before
+      replacing what you've written.
+      Text in _italics_ is a prompt to replace. The bar under the editor
+      counts prompts still left, so you don't publish placeholder text.
+      To add or change templates: lib/post-templates.ts (plain Markdown
+      strings; add an entry to POST_TEMPLATES).
+    - Validation: title 3-100 chars, at least one tag, content 50+ chars.
+
+  Markdown you can use (GitHub-flavoured):
+    # / ## / ###           headings (## gets a divider line above it)
+    **bold**, *italic*, ~~strike~~
+    [text](https://...)    links
+    ![alt](url)            images
+    - item / 1. item       lists
+    - [ ] / - [x]          task lists
+    > quote                blockquote (rendered in the serif font)
+    `inline code`
+    | a | b | tables
+    ---                    horizontal rule
+
+  Code blocks: always put the language after the backticks:
+
+      ```ts
+      const x: number = 1;
+      ```
+
+    Common ids: ts, tsx, js, jsx, py, java, cpp, c, go, rs, sql, bash, json,
+    yaml, css, html, diff. No language = plain text (no colours).
+    Readers get a language badge and a copy button on hover.
+
+  NOT allowed (stripped on purpose for security):
+    - raw HTML inside Markdown (<div>, <script>, <iframe>, ...)
+    - javascript: links
+  The first paragraph of a post is shown slightly larger (the "lead").
+
+
+================================================================================
+ 6. HOW A POST GETS RENDERED
+================================================================================
+
+  DB (Post.content = Markdown text, Post.contentFormat = MARKDOWN)
+    -> lib/markdown.ts  renderMarkdown()   [cached with "use cache"]
+         remark-parse -> remark-gfm -> remark-rehype (drops raw HTML)
+         -> rehype-sanitize (removes unsafe attributes/URLs)
+         -> rehype-pretty-code (Shiki, themes vitesse-light + vitesse-dark)
+         -> HTML string
+    -> components/MarkdownContent.tsx  (<div class="prose prose-blog">)
+    -> components/CodeBlockControls.tsx adds badge + copy button in the
+       browser after the page loads
+
+  Shiki writes BOTH theme colours into every token (--shiki-light,
+  --shiki-dark). globals.css picks one based on the theme toggle, so code
+  switches colours with no re-render.
+
+  Article typography lives in .prose-blog in app/globals.css.
+
+
+================================================================================
+ 7. OLD POSTS (HTML FROM THE QUILL EDITOR)
+================================================================================
+
+  Posts written before the switch were stored as HTML. The migration marks
+  them contentFormat = HTML and new posts default to MARKDOWN.
+
+  - HTML posts still display through components/RenderContent.tsx (uses
+    highlight.js for code).
+  - Opening an HTML post in the editor converts it to Markdown (turndown)
+    and shows a yellow notice. Saving stores it as MARKDOWN from then on.
+    Old Quill code blocks come over WITHOUT a language, so add ```ts (or
+    whichever) by hand before saving.
+  - Once every post is Markdown you can delete RenderContent.tsx, the
+    highlight.js package, rich-text-editor.tsx and react-quill-new.
+
+
+================================================================================
+ 8. ADMIN ACCESS & SECURITY
+================================================================================
+
+  Admin = a row in the User table with role = ADMIN.
+
+  Every new sign-in gets role USER. To make someone an admin, use
+  /admin/settings -> People (they have to sign in once first, so their row
+  exists). Editing the User table in `npx prisma studio` still works too.
+
+  Checks are in lib/require-admin.ts -> getAdminUser(). It is used by:
+    - /admin (page), /admin/posts/create, /admin/posts/<id>/edit
+    - EVERY post server action: create, edit, delete, publish, preview
+
+  Why the actions check too: a server action is a public HTTP endpoint.
+  Hiding the admin pages is not enough, because anyone can call an action
+  directly. If you add a new action that changes data, call getAdminUser()
+  at the top of it.
+
+  Post HTML is rendered with dangerouslySetInnerHTML, which is only safe
+  because (a) only admins can write posts and (b) Markdown output is
+  sanitized. Never render user comments this way. Keep comments as plain
+  text.
+
+
+================================================================================
+ 9. DESIGN SYSTEM: COLOURS, SECTIONS, DARK MODE
+================================================================================
+
+  Ported from the ~/Desktop/blog project (github.com/whatisanolive).
+
+  Palettes: 2 themes (light/dark) x 4 grounds:
+    home          neutral grey
+    tech          blue
+    dsa           green
+    blank-canvas  violet
+
+  How the section colour gets applied:
+    A page adds data-pillar="tech" | "dsa" | "blank-canvas" to its wrapper
+    (see CategoryPage.tsx and the post page). CSS uses :root:has([data-pillar])
+    so the WHOLE page (navbar and footer included) switches palette.
+    No props or conditional classes are needed.
+
+  Colour classes to use in components (they follow theme + section):
+    bg-ground / bg-ground-alt / bg-surface      page, hover, card backgrounds
+    border-edge / border-edge-soft              borders
+    text-ink                                    headings
+    text-body                                   body text
+    text-subtle                                 secondary text
+    text-faint                                  tertiary text / labels
+    text-brand / text-brand-deep / bg-brand     accent colour of the section
+
+  IMPORTANT naming quirk: in the ~/Desktop/blog project these are called
+  "muted" and "accent". Here they're renamed "subtle" and "brand" because
+  shadcn already uses muted/accent for BACKGROUNDS. When copying code from
+  the other project: text-muted -> text-subtle, accent -> brand.
+
+  shadcn colours (--background, --card, --primary, --muted, ...) are mapped
+  onto the same palette in the "shadcn/ui token bridge" block of
+  globals.css, so the admin UI follows the theme too.
+
+  Handy utility classes (defined in globals.css):
+    display         serif display heading style (Fraunces)
+    kicker          tiny uppercase mono label
+    grid-backdrop   faded grid pattern behind page headers
+    prose-blog      article typography (use together with "prose")
+
+  Section hues for places where all three appear together:
+    var(--hue-tech), var(--hue-dsa), var(--hue-blank-canvas)
+    hueVar(key) in lib/sections.ts returns these.
+
+  Dark mode:
+    - The theme is data-theme="light|dark" on <html>, NOT the OS setting.
+    - Light is the default. The toggle (components/ThemeToggle.tsx) saves
+      the choice in localStorage("theme").
+    - public/theme.js (loaded at the top of <body> by app/layout.tsx)
+      applies the saved theme before the page paints, so there's no flash
+      of the wrong theme. Keep it a separate file: an INLINE <script>
+      rendered by a React component makes React warn ("Scripts inside
+      React components are never executed when rendering on the client"),
+      and next/script's beforeInteractive doesn't work here either — it
+      only lands in the React payload, so it runs after hydration and the
+      flash comes back.
+    - Tailwind's dark: variant is wired to [data-theme="dark"], so
+      dark:something works as usual.
+
+
+================================================================================
+ 10. PAGES & WHAT THEY SHOW
+================================================================================
+
+  /                    Hero, 3 section cards (with post counts),
+                       Consistency heatmap, 4 most recent posts
+  /tech /dsa /blank-canvas
+                       Section header, tag filter chips, post grid
+                       (all three use components/CategoryPage.tsx)
+  /post/<slug>         Breadcrumbs, title, date/read time/tags, featured
+                       image, article
+  /admin...            See section 5
+  (anything else)      app/not-found.tsx
+
+  Section titles, taglines and descriptions: lib/sections.ts
+  Site name, email, GitHub, hero and footer text, section taglines:
+                                            /admin/settings (section 12d);
+                                            defaults in lib/site.ts,
+                                            lib/sections.ts, lib/settings.ts
+  Timezone:                                 lib/site.ts
+
+
+================================================================================
+ 11. TAGS
+================================================================================
+
+  - Tags are typed comma-separated in the editor ("react, nextjs"). New
+    tags are created automatically.
+  - Clicking a tag anywhere (filter chips, cards, post header) goes to
+    /<section>?tag=<name>, which shows that section's posts with the tag.
+  - Filtering is PER SECTION: a "typescript" tag on a Tech post links to
+    Tech posts only. A cross-section /tags/<name> page doesn't exist yet.
+  - All tag links are built with tagHref() in lib/sections.ts.
+
+
+================================================================================
+ 12. CONSISTENCY HEATMAP
+================================================================================
+
+  Files: components/ActivityHeatmap.tsx (SVG, server-rendered, no JS)
+         lib/activity.ts               (data + weekly streak maths)
+         getHomePageData() in lib/posts.ts (fetches the dates)
+         colours: "Consistency heatmap" block at the end of globals.css
+
+  - One square per day for the last 365 days. Colour = posts that day
+    (1, 2, 3, 4+).
+  - A post counts on the day it was PUBLISHED (publishedAt), falling back
+    to createdAt for older posts that have no publishedAt. Drafts don't
+    count.
+  - Days are counted in site.timeZone (Asia/Kolkata), not the server's
+    timezone. Change it in lib/site.ts if you move.
+  - Streaks are measured in WEEKS (a week counts if it has at least 1
+    post), counted back from today.
+  - It updates on publish/edit/delete and otherwise at least once a day.
+
+
+================================================================================
+ 12b. VIEWS, LIKES & COMMENTS
+================================================================================
+
+  All three appear on the post page. The page itself is cached, so these
+  parts render separately inside <Suspense> (they show a grey placeholder
+  for a moment, then fill in).
+
+  VIEWS (Post.views)
+    - components/engagement/ViewTracker.tsx runs in the browser after the
+      page loads and calls POST /api/posts/<id>/view
+      (app/api/posts/[id]/view/route.ts).
+    - A cookie (pv_<postId>, 24h) makes one browser count at most once per
+      post per day, so refreshing doesn't inflate it. Bots that don't run
+      JavaScript are never counted. Only PUBLISHED posts count.
+    - It's a route handler rather than a server action on purpose: setting
+      a cookie in a server action makes Next re-render the whole page.
+    - Shown in the post header ("12 views"), in the admin posts table, and
+      as the Total Views card on the dashboard.
+    - Views aren't per-person: 1 person on 2 devices = 2 views.
+
+  LIKES (Like table, one row per user per post)
+    - Signed-in readers only. Signed-out readers who click the heart get
+      the Clerk sign-in popup.
+    - The button updates instantly (useOptimistic) and snaps back if the
+      save fails. Action: actions/toggle-like.ts.
+    - The table's primary key is (userId, postId), so a person can't like
+      a post twice.
+
+  COMMENTS (Comment table)
+    - Signed-in readers only. 1-2000 characters. The same person can't
+      post again within 20 seconds (RATE_LIMIT_MS in actions/comments.ts).
+    - Shown as PLAIN TEXT (line breaks kept). Never switch this to
+      dangerouslySetInnerHTML or Markdown: anyone can write a comment, so
+      that would let people inject scripts.
+    - Display name = the reader's name from Clerk, or "Reader" if they
+      have none. Emails are never shown publicly (only in the admin panel).
+    - Delete: authors can delete their own comments, admins can delete
+      any. Everything asks for confirmation first.
+    - MODERATION PAGE: /admin/comments (sidebar "Comments", or "Moderate
+      all" on the dashboard card). Every comment, newest first, 20 per
+      page. Search covers comment text, the commenter's name and email,
+      and the post title; there's also a per-post filter. Tick several and
+      "Delete selected" removes them in one go (max 100). Filters live in
+      the URL, so a filtered view can be bookmarked.
+      Files: lib/admin-comments.ts, components/admin-comments/*,
+      app/admin/comments/page.tsx, deleteComments() in actions/comments.ts
+    - Comments are cached per post (tag post-comments:<postId>) and
+      expired with updateTag() when one is added or deleted, so the
+      commenter sees theirs immediately.
+    - A person's User row is created the first time they like or comment
+      (getOrCreateUser), not when they sign in.
+
+  Not built (the Comment table would need new columns first):
+    replies (parentId), "edited" labels (updatedAt), approve-before-
+    publish moderation (a status field).
+
+  Deleting a post also deletes its comments and likes (ON DELETE CASCADE,
+  migration 20260919140000).
+
+  Files: lib/engagement.ts (data), actions/toggle-like.ts,
+  actions/comments.ts, components/engagement/*,
+  components/admin-dashboard/recent-comments.tsx
+
+
+================================================================================
+ 12c. ANALYTICS DASHBOARD
+================================================================================
+
+  /admin/analytics (admin only; "Analytics" in the admin sidebar).
+
+  Controls: Last 7 / 30 / 90 days, top left. The range scopes EVERYTHING on
+  the page. While a new range loads the old numbers stay on screen dimmed,
+  so nothing jumps.
+
+  What's on it:
+    - Four tiles: Views, Likes, Comments, Posts published — each with the
+      change against the previous period of the same length ("+21% vs
+      previous 7 days"; "New" when the previous period was zero).
+    - Views per day: line + area, hover (or arrow keys) for a day's value.
+    - Likes and comments per day: two lines on ONE scale, with a legend.
+      Never add a second y-axis here — two different scales on one plot is
+      the most misread chart there is. A third metric = another chart.
+    - Views by section: one bar per section, values labelled.
+    - Top posts in range: views, likes, comments per post.
+    - All-time totals in the footer line.
+    - Every chart has a "Show data" table, so no value needs a hover.
+
+  Where the numbers come from:
+    - Views per day: the PostViewDaily table (postId, day, count), written
+      by the view endpoint. HISTORY STARTS 2026-09-20 — before that only
+      the all-time Post.views total exists, so older days show zero and the
+      page says so.
+    - Likes/comments per day: their createdAt timestamps, so their history
+      goes back to the first one.
+    - Days are bucketed in site.timeZone (Asia/Kolkata).
+    - Nothing here is cached: the page always shows current numbers.
+
+  Chart colours: --series-1 (blue) and --series-2 (orange) in globals.css,
+  set per theme and checked for colour-blind separation against the card
+  background. Assign them in that order. Don't use the section hues for
+  chart series — those mean Tech / DSA / Blank Canvas.
+
+  Files: lib/analytics.ts (queries + bucketing), lib/analytics-range.ts
+  (the 7/30/90 options — separate file because the client filter imports
+  it and analytics.ts is server-only), components/analytics/*,
+  app/admin/analytics/page.tsx
+
+  Not tracked: where readers come from (referrers), countries, sessions,
+  scroll depth, per-reader history. Those need either a lot more data
+  collection or an external analytics tool.
+
+
+================================================================================
+ 12d. SETTINGS
+================================================================================
+
+  /admin/settings (admin only; "Settings" in the admin sidebar).
+
+  What you can change without touching code:
+    - Site: name, tagline, description (SEO/link previews), contact email,
+      GitHub URL, footer text.
+    - Homepage: the big heading, the highlighted word at the end of it
+      (the gradient one), and the intro paragraph.
+    - Each section: tagline + description, shown on the homepage card and
+      at the top of that section's page.
+    - People: everyone who has signed in, with a role dropdown
+      (Reader / Admin). This replaces editing the database by hand.
+
+  Guards on roles: you can't change your OWN role, and the last remaining
+  admin can't be demoted - otherwise nobody could reach /admin again.
+
+  How it works:
+    - Two tables: SiteSettings (one row, id "site") and SectionSettings
+      (one row per category).
+    - Read through lib/settings.ts, never straight from the table. It
+      merges the saved row over the defaults in lib/site.ts and
+      lib/sections.ts, so a BLANK FIELD FALLS BACK to the built-in text
+      instead of rendering an empty page. Clearing a field is how you
+      reset it.
+    - Cached with the tag "site-settings"; saving calls updateTag, so the
+      navbar, footer, homepage, metadata and section pages all update at
+      once.
+    - Each card saves only its own fields (the schema is .partial()), so
+      saving the Homepage card can't blank the Site card.
+
+  Not editable here, on purpose: section TITLES (they appear in the nav,
+  breadcrumbs and URLs), categories themselves (a database enum - needs a
+  migration), and anything secret (those stay in .env).
+
+  Files: lib/settings.ts, lib/admin-users.ts, actions/settings.ts,
+  components/admin-settings/*, app/admin/settings/page.tsx
+
+
+================================================================================
+ 13. CACHING (WHY CHANGES SOMETIMES DON'T SHOW UP)
+================================================================================
+
+  next.config.ts has cacheComponents: true. Public data functions in
+  lib/posts.ts use "use cache" + cacheLife("days") + cacheTag(...).
+
+  - Every post action (create/edit/delete/publish) calls
+    revalidateBlogData() in lib/post-actions.ts, which clears the
+    "blog-posts" and "blog-tags" cache tags and revalidates the main paths.
+  - If you change data directly in the DB (e.g. Prisma Studio), the site
+    may keep showing old data for up to a day. Redeploy, or save the post
+    again from the admin, to clear it.
+  - Rendered Markdown is cached per content string (renderMarkdown), so an
+    edit to a post produces a new cache entry automatically.
+  - If you add a new data function for public pages, give it
+    "use cache" + cacheTag(BLOG_CACHE_TAGS.posts) so publishing clears it.
+  - revalidateTag(tag, "max") (used for posts) may serve the old version
+    once more while refreshing in the background. updateTag(tag) (used
+    for comments) makes the next request wait for fresh data. Use
+    updateTag when the person who made the change needs to see it right
+    away. It only works inside server actions.
+  - View counts and like state use connection() = never cached.
+
+
+================================================================================
+ 14. DATABASE & PRISMA MIGRATIONS
+================================================================================
+
+  Schema: prisma/schema.prisma
+  Models: User (role USER/ADMIN), Post, Tag, PostTag (join), Comment, Like
+  Post notable fields:
+    content         Markdown (or HTML for old posts)
+    contentFormat   MARKDOWN | HTML
+    status          DRAFT | PUBLISHED
+    publishedAt     set when published
+    category        TECH | DSA | BLANK_CANVAS
+    views           all-time view counter (see section 12b)
+
+  Migrations: prisma/migrations/
+    20260405104307_init
+    20260919120000_add_post_content_format        applied 2026-09-19
+    20260919140000_cascade_comments_likes_on_post_delete
+                                                  applied 2026-09-19
+    20260920100000_add_post_view_daily            applied 2026-09-20
+    20260920160000_add_site_settings              applied 2026-09-20
+
+  To change the schema:
+    1. edit prisma/schema.prisma
+    2. npx prisma migrate dev --name describe_change
+    3. commit the new folder in prisma/migrations
+    4. on the server: npx prisma migrate deploy
+
+  Adding a new category means: add it to the Category enum in the schema,
+  migrate, then add a section (section 16).
+
+
+================================================================================
+ 15. FILE MAP
+================================================================================
+
+  app/
+    layout.tsx                 fonts, theme script, Clerk, navbar/footer
+    globals.css                ALL colours, themes, typography, code blocks,
+                               heatmap colours
+    (home)/page.tsx            homepage
+    tech|dsa|blank-canvas/     section routes (thin wrappers)
+    post/[slug]/page.tsx       article page
+    admin/                     dashboard, create, edit
+    not-found.tsx, loading.tsx
+
+  actions/                     server actions
+    create-post.ts, edit-post.ts, delete-post.ts, publish-post.ts,
+    preview-markdown.ts        (admin only)
+    toggle-like.ts, comments.ts (signed-in readers; comment delete =
+                               author or admin)
+
+  app/api/posts/[id]/view/route.ts   view counter endpoint (also writes
+                                     the PostViewDaily row for analytics)
+
+  components/
+    Navbar.tsx, NavLinks.tsx   header (NavLinks = active-section links)
+    Footer.tsx
+    ThemeToggle.tsx            light/dark button
+    CategoryPage.tsx           shared section page
+    PostCard.tsx               post card (whole card clickable, tags link)
+    ActivityHeatmap.tsx        consistency calendar
+    AuthControls.tsx           Sign in button / user avatar (client)
+    engagement/                ViewTracker, ViewCount, LikeButton,
+                               LikeSection, CommentForm, CommentsSection,
+                               DeleteCommentButton
+    admin-comments/            CommentFilters, CommentsTable (moderation)
+    admin-posts/               PostRow, DeletePostButton
+    admin-settings/            SettingsForm, Field, UserRoleSelect
+    MarkdownContent.tsx        renders Markdown HTML
+    CodeBlockControls.tsx      code language badge + copy button
+    RenderContent.tsx          renders OLD HTML posts
+    SectionIcon.tsx            Cpu / Binary / Palette icons
+    LoadingSkeleton.tsx
+    posts/markdown-editor.tsx  the admin editor (incl. template picker)
+    posts/create-post-page.tsx, posts/edit-post-page.tsx
+    admin-dashboard/           dashboard widgets
+    ui/                        shadcn components
+
+  lib/
+    posts.ts                   all cached public queries
+    post-actions.ts            form validation (zod), tags sync, revalidate
+    markdown.ts                Markdown -> HTML, HTML -> Markdown
+    require-admin.ts           getAdminUser()
+    sections.ts                section config, tagHref, hueVar
+    site.ts                    site name, email, GitHub, timezone
+    activity.ts                heatmap data + streaks
+    engagement.ts              views/likes/comments data, getViewer()
+    analytics.ts               analytics queries (server only)
+    analytics-range.ts         7/30/90 range options (client-safe)
+    admin-comments.ts          moderation list (search/filter/paging)
+    admin-posts.ts             posts overview (latest, drafts, sections)
+    admin-users.ts             people list for settings
+    settings.ts                editable site/section copy (+ defaults)
+    post-templates.ts          starter templates for new posts
+    utils.ts                   cn, getPreview, stripMarkdown, readingTime,
+                               formatDate, pluralize
+    cloudinary.ts              image upload
+    prisma.ts                  Prisma client
+
+
+================================================================================
+ 16. HOW-TO RECIPES
+================================================================================
+
+  Change a section's name/tagline/description
+    -> lib/sections.ts
+
+  Change a section's colours
+    -> app/globals.css: its light block ([data-pillar="x"]) AND its dark
+       block ([data-theme="dark"] [data-pillar="x"]), plus --hue-x at the
+       top (both themes). Keep text contrast readable.
+
+  Add a new section (e.g. "notes")
+    1. Add NOTES to the Category enum in schema.prisma, migrate.
+    2. lib/sections.ts: add to SectionKey, SECTIONS, SECTION_ORDER and
+       SECTION_BY_CATEGORY. Pick an iconName (add the icon in
+       SectionIcon.tsx if new).
+    3. globals.css: copy a pillar's light + dark blocks, rename to "notes",
+       and add --hue-notes.
+    4. Create app/notes/page.tsx + loading.tsx (copy app/dsa/).
+    5. Add <option value="NOTES"> to the category <select> in
+       create-post-page.tsx and edit-post-page.tsx.
+    6. Add NOTES: 0 to the counts object in getHomePageData().
+
+  Change the code highlighting theme
+    -> lib/markdown.ts, theme: { light: "...", dark: "..." }
+       (any Shiki theme id: github-light, github-dark, one-dark-pro, ...)
+
+  Make dark the default for first-time visitors
+    -> app/layout.tsx themeScript: change t==="dark"?"dark":"light" to
+       t==="light"?"light":"dark" (and "light" -> "dark" in the catch).
+
+  Change the heatmap timezone
+    -> lib/site.ts timeZone
+
+  Add a social link to the footer
+    -> SOCIALS array in components/Footer.tsx
+
+  Make a user an admin
+    -> /admin/settings -> People -> role dropdown (they must have signed
+       in once first). Prisma Studio still works as a fallback.
+
+
+================================================================================
+ 17. NEXT.JS 16 GOTCHAS (THIS PROJECT)
+================================================================================
+
+  AGENTS.md says it: this Next.js version differs from older docs. Local
+  docs are in node_modules/next/dist/docs/. Things that bit us:
+
+  - With cacheComponents ON, `export const dynamic = "force-dynamic"`
+    (and other route segment configs) BREAK the build. Don't use them.
+  - usePathname(), searchParams, cookies() etc. must sit inside <Suspense>
+    or the build fails with "Uncached data was accessed outside of
+    <Suspense>". Example: NavLinks is wrapped in Suspense in Navbar.tsx.
+  - new Date() / Date.now() in a prerendered component also counts as
+    uncached data. Do it inside a "use cache" function (like
+    getHomePageData) or inside Suspense.
+  - The middleware file is proxy.ts (not middleware.ts).
+  - Clerk's <SignInButton>/<SignUpButton>/<SignOutButton> must get their
+    child from a CLIENT component. If the child comes from a server
+    component, it can arrive as a lazy reference and Clerk throws "You've
+    passed multiple children components". That's why the navbar's auth
+    controls live in components/AuthControls.tsx ("use client").
+  - "Another next dev server is already running" with a PID that no
+    longer exists = a leftover from Ctrl+C. Wait a moment and retry, or
+    run `kill <pid>` if the process really is still alive.
+  - `npm run dev` is more forgiving than `npm run build`. Always build
+    before deploying.
+
+
+================================================================================
+ 18. KNOWN ISSUES / LOOSE ENDS
+================================================================================
+
+  - Drafts are visible to anyone who knows the slug: getPostBySlug() in
+    lib/posts.ts doesn't filter by status. Add status: "PUBLISHED" there
+    if that matters (admins would then preview via the editor).
+  - Changing a post's title changes its slug (URL), which breaks old
+    links to it.
+  - The sidebar's Settings link still points to "/dashbard" (typo, no such
+    page). Overview, Posts, Comments and Analytics work.
+  - Unused files you can delete: components/post-section.tsx,
+    components/posts/rich-text-editor.tsx (and the react-quill-new
+    package once no one needs Quill).
+  - This folder isn't a git repository. Consider `git init` and pushing it
+    somewhere so changes can be undone.

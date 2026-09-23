@@ -22,12 +22,13 @@ const Admin = async () => {
   //   take: 5,
   // });
 
-  const { stats, posts } = await getAdminDashboardData();
+  const { stats, posts, comments } = await getAdminDashboardData();
 
   return <AdminDashboard
         user={user}
         stats={stats}
-      posts={posts}/>; //  pass data
+      posts={posts}
+      comments={comments}/>; //  pass data
 };
 
 export default Admin;
