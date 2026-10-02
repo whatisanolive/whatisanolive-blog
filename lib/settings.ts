@@ -38,8 +38,8 @@ export const DEFAULT_SITE_SETTINGS: SiteSettingsValues = {
   github: site.github,
   footerBlurb:
     "Notes on the systems I build, the algorithms I unpack, and the things that do not fit in either box.",
-  heroLead: "Learning, writing and order, here is everything I",
-  heroHighlight: "love",
+  heroLead: "A drive, A thought & an ",
+  heroHighlight: "Action",
   heroIntro:
     "Long-form notes on backend systems and machine learning, the algorithmic patterns worth internalising, and the occasional essay that belongs to neither. No listicles, no hedging — just the working.",
 };

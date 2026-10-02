@@ -4,14 +4,6 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
 
-  // Previous escape hatch kept for reference per request.
-  // typescript: {
-  //   ignoreBuildErrors: true,
-  // },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  
 
   images: {
     

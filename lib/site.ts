@@ -4,7 +4,7 @@ export const site = {
   title: "engineering notes",
   description:
     "A developer notebook on systems, algorithms, and everything that refuses a category.",
-  author: "Ish",
+  author: "Ishita Khandelwal",
   email: "ish2k21989@gmail.com",
   github: "https://github.com/whatisanolive",
   /** Calendar days (e.g. the consistency heatmap) are counted in this timezone. */
